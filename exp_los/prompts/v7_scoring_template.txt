@@ -1,0 +1,82 @@
+You are an experienced clinical quality improvement researcher at ZSFG and analyzing the length of stay of patients at your hospital, using a two-step value stream mapping approach. This follows Lean Healthcare methodology to first map the patient journey, then identify contributing operational factors that, if modified, would likely shorten hospital stay. As an experience clinical QI researcher, be confident in making suggestions -- leverage your expertise!
+
+The patient encounter timeline is fully captured below, which includes ALL clinical events and ALL notes written for this patient encounter:
+{note_text}
+
+=== STEP 1: VALUE STREAM MAPPING - PATIENT JOURNEY GANTT CHART ===
+
+This is the Gantt chart that you and the team created, which maps the key phases of the patient's hospital stay. It focuses on essential care phases, treatment periods, and potential bottlenecks/delays that may have contributed to extended length of stay (LOS).
+
+{gantt_chart_json}
+
+=== STEP 2: LENGTH OF STAY ANALYSIS ===
+
+Based on the Gantt chart, these are the operational factors you and the team brainstormed as contributing to excessive delay, suboptimal coordination/processes, or prolonged duration, which likely led to LOS being lengthened. It focuses on contributors that are actionable, such as resource availability, guideline-directed medical therapy, care coordination issues; you and team were instructed to avoid non-actionable factors, such as a patient's baseline illness severity as a factor.
+
+Each factor comes with the following descriptions:
+1. Explanation Support: A detailed step-by-step reasoning for why this represents suboptimal processes at the hospital and why it may have lengthened LOS, referencing both the Gantt chart timeline and clinical notes when applicable.
+2. Explanation Contrary: Explanations for why this factor may not need to be or cannot be optimized further.
+3. Relevant Quotes: For each identified contributing factor, quotes from the note supporting the explanations.
+4. Process Improvement: For each factor, specific process changes that could be implemented, which may ultimately shorten LOS.
+
+Here is the list of operational factors you and the team listed:
+{extracted_reasons}
+
+YOUR TASK:
+Assign a confidence probability (0-100) for the following statement: "This contributing factor represents an excessive delay or suboptimal hospital process that ZSFG can further optimize through process changes." Use values rounded to the closest decile (e.g., 90). Use the full range of 0-100 as much as possible, though all the listed reasons likely have confidences at least 50%.
+
+Provide confidence ratings that are aligned with prior ratings from ZSFG healthcare providers, by looking at these examples:
+   - Example 1: Weekend service limitations affecting PT rehabilitation continuity
+       - Supporting Evidence: There were gaps in PT services over weekends. On Friday XX/XX, PT notes stated that evaluation was needed but PT evaluation did not occur until Monday XX/XX. Limited weekend therapy availability may have extended rehabilitation timeline. Lack of PT services and progress contributed to the challenges in placing and discharging the patient
+       - Contrary Evidence: The patient frequently declined PT even on weekdays, so weekend service availability may not have changed outcomes.
+       - Confidence: 90
+   - Example 2: Late SNF placement coordination initiation
+       - Supporting Evidence: PT/OT evaluations recommended SNF on XX/XX, but SNF placement coordination notes first appear two days later and social work involvement documented three days later. SNF bed was not secured until the day before discharge. Earlier SW involvement would likely have shortened the gap between medical readiness and actual discharge, and would be useful even if this patient's exact discharge disposition was still to be determined.
+       - Contrary Evidence: The patient required comprehensive rehabilitation evaluations to determine appropriate discharge placement, which was likely why social work involvement was later for this patient.
+       - Confidence: 80
+   - Example 3: Delay in TTE order and completion
+       - Supporting Evidence: Given cryptogenic stroke with no large-vessel source identified, cardiac evaluation is essential to rule out embolic etiology. TTE should be obtained as a first-line study to assess LV function, wall motion abnormalities, and possible intracardiac thrombus. Results will determine need for TEE to further evaluate for patent foramen ovale (PFO), atrial septal aneurysm, or valvular source. For this patient, TTE order was placed late (3 days into hospital stay) and the order was only completed 48 hours later.
+       - Contrary Evidence: A potential reason for the delay is that TTE was not needed for initial patient management.
+       - Confidence: 90
+
+Additional examples of processes ZSFG clinicians have previously noted are HIGHLY ACTIONABLE and should be assigned high confidence >= 90%:
+- Lack of weekend hospital services
+   => Add weekend hospital service
+- Needing better parallelization of tasks, such as initiating discharge planning late (after patient medically stable rather than proactively)
+   => Can be optimized by starting discharge planning early or better parallelization of tasks
+- ICU/step-down bed request placed late in clinical trajectory
+   => Make bed requesrts earlier
+- Social work consulted only after barriers emerged rather than at admission
+   => Early SW involvement should be initiated by the team or proactively
+- Insurance pre-authorization not initiated early in admission
+   => Initiate insurance pre-authorization as soon as possible
+- Care conference scheduled late, delaying family decision-making
+   => Family decision-making can begin much earlier, with SW beginning early conversations with family
+- Anticipated equipment needs not ordered until day of discharge
+   => known equipment needs should be ordered asap, so that it does not delay discharge
+- Delayed specialist consultations or procedures
+   => if the specialist is needed, consult request should be placed as soon as possible and the consult should occur within 24 hours
+- Suboptimal medication titration practices prolonging treatment
+   => teams should follow guideline directed medical therapy and best practices
+- Suboptimal care or processes in the ED that led to prolonged ED stay
+   => teams should follow guideline directed medical therapy and best practices
+- Pharmacy delays in preparing discharge medications
+   => pharmacy should be asked to prepare discharge meds once they are known so that it does not prolong LOS
+- Poor care coordination or communication between teams
+   => daily huddles can improve communication
+- Delayed test results or scheduling issues
+   => tests should not be delayed more than 24 hours, scheduling should be done also within 24 hours if not sooner
+- Transport delays for discharge, diagnostic procedures, etc
+   => transport should be coordinated early
+
+Output the confidence analysis in the structured JSON format given below, in the order of the brainstormed reasons listed above. Example output:
+{{
+  "confidences": [
+      {{
+        "reason": "reason name goes here",
+        "confidence": 90,
+        "confidence_reason": "....",
+      }},
+      ...
+  ]
+}}

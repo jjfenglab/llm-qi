@@ -1,0 +1,564 @@
+import os
+from os.path import join as path_join
+
+from dotenv import load_dotenv
+from nestly import Nest
+from nestly.scons import SConsWrap
+from SCons.Script import Import
+
+load_dotenv()
+
+# For SCons - Import env from parent
+Import("env")
+localenv = env.Clone()
+
+# Path to the source EHR database. Set the READMISSION_DB environment variable
+# (or your .env) to the absolute path of your local DuckDB/SQLite database;
+# see src/assemble_readmission_notes.py for the expected schema.
+READMISSION_DATABASE = os.environ.get("READMISSION_DB", "")
+assert READMISSION_DATABASE, (
+    "READMISSION_DB environment variable is not set. Point it at your EHR "
+    "database; see src/assemble_readmission_notes.py for the expected schema."
+)
+
+# Available prompt versions for readmission extraction
+PROMPT_VERSIONS_DICT = {
+    # "v1": {
+    #    "limit": 4,
+    #    "seed": 42,
+    #    "max_char": 1000000,
+    #    "llm_model": "us.anthropic.claude-opus-4-5-20251101-v1:0",
+    #    "reviewer_id": "jean luke rob jim", # only read the first reason
+    #    "num_read_all": 0,
+    # },
+    # "v2": {
+    #    "limit": 4,
+    #    "seed": 42,
+    #    "max_char": 500000,
+    #    "llm_model": "us.anthropic.claude-opus-4-5-20251101-v1:0",
+    #    "reviewer_id": "rob",
+    #    "num_read_all": 0,
+    # },
+    # "v3": {
+    #    "limit": 4,
+    #    "seed": 42,
+    #    "max_char": 500000,
+    #    "llm_model": "us.anthropic.claude-opus-4-5-20251101-v1:0",
+    #    "reviewer_id": "jean",
+    #    "num_read_all": 0,
+    # },
+    # "v4": {
+    #    "limit": 4,
+    #    "seed": 42,
+    #    "max_char": 500000,
+    #    "llm_model": "us.anthropic.claude-opus-4-5-20251101-v1:0",
+    #    "reviewer_id": "luke",
+    #    "num_read_all": 0,
+    # },
+    # "v5": { # both jean and luke read outputs from v5
+    #    "limit": 8,
+    #    "seed": 42,
+    #    "max_char": 100000,
+    #    "llm_model": "us.anthropic.claude-opus-4-5-20251101-v1:0",
+    #    "reviewer_id": "jean luke",
+    #    "num_read_all": 8,
+    # },
+    # "v6": { # addressed comments
+    #    "limit": 6,
+    #    "seed": 23,
+    #    "max_char": 100000,
+    #    "llm_model": "us.anthropic.claude-opus-4-5-20251101-v1:0",
+    #    "reviewer_id": "jean",
+    #    "num_read_all": 0,
+    # },
+    # "v7": { # created because timeout issues
+    #    # Two-stage pipeline: Gantt extraction + Reasons extraction (separate LLM calls)
+    #    # Reduces timeout errors by simplifying each schema
+    #    "limit": 500,
+    #    "seed": 23,
+    #    "max_char": 500000,
+    #    "llm_model": "us.anthropic.claude-opus-4-5-20251101-v1:0",
+    #    "reviewer_id": "luke ross hemal toff rob dana",
+    #    "add_reviewer_ids": "amy someone",
+    #    "num_read_all": 4,
+    #    "two_stage": True,  # Flag to use two-stage pipeline
+    # },
+    "v8": {  # scaling up - no annotations, just run extraction pipeline on more patients
+        # Two-stage pipeline: Gantt extraction + Reasons extraction (separate LLM calls)
+        # Reduces timeout errors by simplifying each schema
+        "limit": 501,
+        "seed": 23,
+        "max_char": 500000,
+        "llm_model": "us.anthropic.claude-opus-4-5-20251101-v1:0",
+        "reviewer_id": None,
+        "num_read_all": None,
+        "two_stage": True,  # Flag to use two-stage pipeline
+    },
+}
+PROMPT_VERSIONS = list(PROMPT_VERSIONS_DICT.keys())
+MIN_CONFIDENCE = 50
+
+# Clustering parameters
+CLUSTERING_CONFIGS = {
+    "default": {
+        "min_cluster_size": 10,
+        "embedding_model": "all-MiniLM-L6-v2",
+    },
+}
+
+# LOS filtering parameters
+LOS_CONFIG = {
+    "min_los": 4,
+    "max_los": 30,
+    "seed": 42,
+}
+
+
+# Cache configuration for LLM calls
+CACHE_FILE = "readmission_cache.db"
+
+# Set up nestly state
+nest = SConsWrap(Nest(), localenv["output"], alias_environment=localenv)
+
+# LLM Models for filtering (kept separate from extraction model in PROMPT_VERSIONS_DICT)
+FILTER_MODEL = "gpt-4o-2024-08-06"
+
+# LLM Configuration
+LLM_DICT = {
+    "batch_size": 10,
+    "max_retries": 1,
+    "temperature": {
+        "gpt-4o-2024-08-06": 0,
+        "gpt-5-mini-2025-08-07": 1,
+        "gpt-5-2025-08-07": 1,
+        "us.anthropic.claude-haiku-4-5-20251001-v1:0": 1,
+        "us.anthropic.claude-opus-4-5-20251101-v1:0": 1,
+    },
+}
+
+
+nest.add("prompt_version", PROMPT_VERSIONS, label_func=lambda c: "prompt_%s" % c)
+
+# Diagnosis cohorts for filtering (COPD, Heart Failure, AMI)
+# Used starting from v5
+DIAGNOSIS_COHORTS = ["COPD", "Heart Failure", "AMI", "Pneumonia"]
+
+
+@nest.add_target_with_env(localenv)
+def assemble_readmission_notes(env, outdir, c):
+    """Phase 1: Assemble notes from database to CSV.
+
+    v1: Inpatient notes only (discharge summary, ED note, H&P)
+    v2: Includes outpatient notes, consult notes, and care plan notes
+    v3 and up: includes discharge and patient instructions, do not include care plan
+    v5 and up: filters to specific diagnosis cohorts (COPD, Heart Failure, AMI)
+    """
+    prompt_version_number = int(c["prompt_version"][-1])
+    cmd = [
+        "python3 src/assemble_readmission_notes.py",
+        "--source-db",
+        READMISSION_DATABASE,
+        "--output-csv ${TARGETS[0]}",
+        "--seed",
+        42,
+    ]
+
+    # v2 and beyond include outpatient notes, consult notes, and care plan notes
+    if prompt_version_number == 2:
+        cmd.append("--include-outpatient")
+        cmd.append("--include-consults")
+        cmd.append("--include-care-plans")
+    if prompt_version_number >= 3:
+        cmd.append("--include-outpatient")
+        cmd.append("--include-consults")
+        cmd.append("--include-instructions")
+
+    # v5 and beyond filter to specific diagnosis cohorts
+    if prompt_version_number >= 5:
+        cmd.append("--diagnosis-cohorts")
+        cmd.extend([f'"{cohort}"' for cohort in DIAGNOSIS_COHORTS])
+
+    targets = [path_join(outdir, "assembled_notes.csv")]
+    return env.Command(targets, [], " ".join(map(str, cmd)))
+
+
+@nest.add_target_with_env(localenv)
+def filter_notes(env, outdir, c):
+    """Filter notes based on prompt version."""
+    prompt_config = PROMPT_VERSIONS_DICT[c["prompt_version"]]
+    targets = [
+        path_join(outdir, "filter_results.csv"),
+    ]
+
+    cmd = [
+        "python src/filter_notes.py",
+        "--input-csv ${SOURCES[0]}",
+        "--output-csv ${TARGETS[0]}",
+        "--model",
+        FILTER_MODEL,
+        "--no-filter",
+        "--limit",
+        prompt_config["limit"],
+    ]
+
+    sources = c["assemble_readmission_notes"]
+    return env.Command(targets, sources, " ".join(map(str, cmd)))
+
+
+@nest.add_target_with_env(localenv)
+def extract_gantt_charts(env, outdir, c):
+    """Phase 2a: Extract Gantt charts using LLM (two-stage pipeline only)"""
+    prompt_config = PROMPT_VERSIONS_DICT[c["prompt_version"]]
+
+    # Only run for two-stage pipeline versions
+    if not prompt_config.get("two_stage", False):
+        return
+
+    llm_model = prompt_config["llm_model"]
+    prompt_template_path = (
+        f"exp_readmission/prompts/{c['prompt_version']}_gantt_template.txt"
+    )
+
+    cmd = [
+        "python src/extract_gantt_chart.py",
+        "--input-csv ${SOURCES[0]}",
+        "--output-json ${TARGETS[0]}",
+        "--prompt-template",
+        prompt_template_path,
+        "--cache-db",
+        CACHE_FILE,
+        "--log-file ${TARGETS[1]}",
+        "--model",
+        llm_model,
+        "--batch-size",
+        LLM_DICT["batch_size"],
+        "--max-retries",
+        LLM_DICT["max_retries"],
+        "--temperature",
+        LLM_DICT["temperature"][llm_model],
+        "--limit",
+        prompt_config["limit"],
+        "--filter-csv ${SOURCES[1]}",
+    ]
+    if "seed" in prompt_config:
+        cmd += ["--random-seed", prompt_config["seed"]]
+    if "max_char" in prompt_config:
+        cmd += ["--max-char", prompt_config["max_char"]]
+
+    sources = [
+        c["assemble_readmission_notes"][0],
+        c["filter_notes"][0],
+    ]
+    targets = [
+        path_join(outdir, "gantt_charts.json"),
+        path_join(outdir, "log_gantt_extraction.txt"),
+    ]
+
+    return env.Command(targets, sources, " ".join(map(str, cmd)))
+
+
+@nest.add_target_with_env(localenv)
+def extract_reasons(env, outdir, c):
+    """Phase 2/2b: Extract readmission reasons using LLM
+
+    Single-call mode (v1-v6): Extracts Gantt chart + reasons together
+    Two-stage mode (v7+): Uses existing Gantt charts and extracts only reasons
+    """
+    prompt_config = PROMPT_VERSIONS_DICT[c["prompt_version"]]
+    llm_model = prompt_config["llm_model"]
+    two_stage = prompt_config.get("two_stage", False)
+
+    # Construct prompt template path based on version
+    prompt_template_path = (
+        f"exp_readmission/prompts/{c['prompt_version']}_extraction_template.txt"
+    )
+
+    cmd = [
+        "python src/extract_reasons.py",
+        "--input-csv ${SOURCES[0]}",
+        "--output-csv ${TARGETS[0]}",
+        "--prompt-template",
+        prompt_template_path,
+        "--cache-db",
+        CACHE_FILE,
+        "--log-file ${TARGETS[1]}",
+        "--model",
+        llm_model,
+        "--batch-size",
+        LLM_DICT["batch_size"],
+        "--max-retries",
+        LLM_DICT["max_retries"],
+        "--temperature",
+        LLM_DICT["temperature"][llm_model],
+        "--limit",
+        prompt_config["limit"],
+        "--filter-csv ${SOURCES[1]}",
+    ]
+    if "seed" in prompt_config:
+        cmd += ["--random-seed", prompt_config["seed"]]
+    if "max_char" in prompt_config:
+        cmd += ["--max-char", prompt_config["max_char"]]
+
+    # v6 and beyond: use base model (no inline confidence), confidence scored separately
+    prompt_version_number = int(c["prompt_version"][-1])
+    if prompt_version_number >= 6:
+        cmd.append("--no-confidence")
+
+    sources = [
+        c["assemble_readmission_notes"][0],
+        c["filter_notes"][0],
+    ]
+
+    if two_stage:
+        # Two-stage mode: use existing Gantt charts from extract_gantt_charts
+        cmd += ["--input-gantt-json ${SOURCES[2]}"]
+        sources.append(c["extract_gantt_charts"][0])  # gantt_charts.json
+        targets = [
+            path_join(outdir, "extracted_reasons.csv"),
+            path_join(outdir, "log_extraction.txt"),
+        ]
+    else:
+        # Single-call mode: generate Gantt charts alongside reasons
+        cmd += ["--output-gantt-json ${TARGETS[2]}"]
+        targets = [
+            path_join(outdir, "extracted_reasons.csv"),
+            path_join(outdir, "log_extraction.txt"),
+            path_join(outdir, "gantt_charts.json"),
+        ]
+
+    return env.Command(targets, sources, " ".join(map(str, cmd)))
+
+
+@nest.add_target_with_env(localenv)
+def score_confidences(env, outdir, c):
+    """Phase 3: Score confidence for extracted reasons using LLM"""
+    prompt_config = PROMPT_VERSIONS_DICT[c["prompt_version"]]
+    llm_model = prompt_config["llm_model"]
+    two_stage = prompt_config.get("two_stage", False)
+    prompt_template_path = (
+        f"exp_readmission/prompts/{c['prompt_version']}_scoring_template.txt"
+    )
+
+    cmd = [
+        "python src/score_confidences.py",
+        "--input-csv ${SOURCES[0]}",
+        "--output-csv ${TARGETS[0]}",
+        "--gantt-json ${SOURCES[1]}",
+        "--notes-csv ${SOURCES[2]}",
+        "--prompt-template",
+        prompt_template_path,
+        "--cache-db",
+        CACHE_FILE,
+        "--log-file ${TARGETS[1]}",
+        "--model",
+        llm_model,
+        "--batch-size",
+        LLM_DICT["batch_size"],
+        "--max-retries",
+        LLM_DICT["max_retries"],
+        "--temperature",
+        LLM_DICT["temperature"][llm_model],
+    ]
+    if "seed" in prompt_config:
+        cmd += ["--random-seed", prompt_config["seed"]]
+
+    # Gantt charts come from different source in two-stage mode
+    if two_stage:
+        gantt_source = c["extract_gantt_charts"][
+            0
+        ]  # gantt_charts.json from extract_gantt_charts
+    else:
+        gantt_source = c["extract_reasons"][2]  # gantt_charts.json from extract_reasons
+
+    sources = [
+        c["extract_reasons"][0],  # extracted_reasons.csv
+        gantt_source,
+        c["assemble_readmission_notes"][0],  # assembled_notes.csv
+    ]
+    targets = [
+        path_join(outdir, "scored_reasons.csv"),
+        path_join(outdir, "log_confidence_scoring.txt"),
+    ]
+
+    return env.Command(targets, sources, " ".join(map(str, cmd)))
+
+
+@nest.add_target_with_env(localenv)
+def generate_validation_ui(env, outdir, c):
+    """Generate HTML validation interface"""
+    prompt_config = PROMPT_VERSIONS_DICT[c["prompt_version"]]
+    two_stage = prompt_config.get("two_stage", False)
+
+    # Skip if no reviewer configured
+    if prompt_config.get("reviewer_id") is None:
+        return
+
+    cmd = [
+        "python ui/start_validation_app.py",
+        "--db-path exp_readmission/annotations.db",
+        "--assembled-notes-csv ${SOURCES[0]}",
+        "--extracted-reasons-csv ${SOURCES[1]}",
+        "--gantt-json ${SOURCES[2]}",
+        "--prompt-id",
+        f"exp_readmission_{c['prompt_version']}",
+        "--calibration",
+        "monotone_ordinal",
+        "--reviewer-id",
+        prompt_config["reviewer_id"],
+        "--num-read-all",
+        str(prompt_config["num_read_all"]),
+        '--rating-statement-completion "reduce readmission risk"',
+        "--export ${TARGETS[0]}",
+    ]
+    targets = [path_join(outdir, "validation.html")]
+
+    # Gantt charts come from different source in two-stage mode
+    if two_stage:
+        gantt_source = c["extract_gantt_charts"][0]
+    else:
+        gantt_source = (
+            c["extract_reasons"][2]
+            if len(c["extract_reasons"]) > 2
+            else c["extract_reasons"][1]
+        )
+
+    # Use scored_reasons for v4+ (confidence scored separately)
+    prompt_version_number = int(c["prompt_version"][-1])
+    if prompt_version_number >= 4:
+        reasons_source = c["score_confidences"][0]
+    else:
+        reasons_source = c["extract_reasons"][0]
+
+    sources = [
+        c["assemble_readmission_notes"][0],
+        reasons_source,
+        gantt_source,
+    ]
+    return env.Command(targets, sources, " ".join(map(str, cmd)))
+
+
+# Manual annotation upload and offline analysis are run separately, e.g.
+#   python src/upload_annotations.py --prompt-id exp_readmission_v<N> \
+#       --input-csv exp_readmission/annotations/validations_<reviewer>.csv \
+#       --db-path exp_readmission/annotations.db
+#   python src/analyze_annotations.py --prompt-id exp_readmission_v<N> \
+#       --db-path exp_readmission/annotations.db \
+#       --calibration-model monotone_ordinal --bin-range 50 60 70 80
+
+nest.add("clustering_config", list(CLUSTERING_CONFIGS.keys()))
+
+
+@nest.add_target_with_env(localenv)
+def cluster_reasons(env, outdir, c):
+    """Phase 3: Cluster reasons using BERTopic"""
+    if c["prompt_version"] != "v8":
+        # only v8 gets to cluster and reach this step
+        return
+    clustering_config = CLUSTERING_CONFIGS[c["clustering_config"]]
+
+    targets = [
+        path_join(outdir, "clustered_reasons.csv"),
+        path_join(outdir, "topic_summaries.csv"),
+        path_join(outdir, "topic_model.pkl"),
+        path_join(outdir, "cluster_members.json"),
+    ]
+
+    cmd = [
+        "python src/cluster_reasons.py",
+        "--input-csv ${SOURCES[0]}",
+        "--clustered-reasons-csv ${TARGETS[0]}",
+        "--topic-summaries-csv ${TARGETS[1]}",
+        "--topic-model-pkl ${TARGETS[2]}",
+        "--cluster-members-json ${TARGETS[3]}",
+        "--min-confid",
+        MIN_CONFIDENCE,
+        "--n-neighbors 10",
+        "--n-clusters 30",
+        "--min-cluster-size",
+        clustering_config["min_cluster_size"],
+        "--embedding-model",
+        clustering_config["embedding_model"],
+    ]
+
+    sources = [c["score_confidences"][0]]  # filtered_reasons.csv
+
+    return env.Command(targets, sources, " ".join(map(str, cmd)))
+
+
+# The cluster_members.json produced above is then manually cleaned with an LLM
+# into cluster_members_gemini_clean.json (see "Cleaning BERTopic cluster names"
+# in the top-level README) before tag_themes runs.
+
+
+@nest.add_target_with_env(localenv)
+def tag_themes(env, outdir, c):
+    """Phase 4: Tag filtered reasons with themes using LLM"""
+    if c["prompt_version"] != "v8":
+        return
+
+    llm_model = PROMPT_VERSIONS_DICT[c["prompt_version"]]["llm_model"]
+    prompt_template_path = "exp_readmission/prompts/theme_tagging_template.txt"
+    # Note: cluster_members_gemini_clean.json is manually created after cluster_reasons
+    themes_json_path = path_join(
+        "exp_readmission", outdir, "cluster_members_gemini_clean.json"
+    )
+
+    cmd = [
+        "python src/tag_themes.py",
+        "--input-csv ${SOURCES[0]}",
+        "--themes-json",
+        themes_json_path,
+        "--output-csv ${TARGETS[0]}",
+        "--prompt-template",
+        prompt_template_path,
+        "--cache-db",
+        CACHE_FILE,
+        "--min-confidence",
+        MIN_CONFIDENCE,
+        "--log-file ${TARGETS[1]}",
+        "--model us.anthropic.claude-haiku-4-5-20251001-v1:0",
+        "--batch-size",
+        LLM_DICT["batch_size"],
+        "--max-retries",
+        LLM_DICT["max_retries"],
+        "--temperature",
+        LLM_DICT["temperature"][llm_model],
+    ]
+
+    sources = [c["score_confidences"][0]]
+    targets = [
+        path_join(outdir, "tagged_reasons.csv"),
+        path_join(outdir, "log_theme_tagging.txt"),
+    ]
+
+    return env.Command(targets, sources, " ".join(map(str, cmd)))
+
+
+@nest.add_target_with_env(localenv)
+def plot_themes(env, outdir, c):
+    """Phase 5: Plot theme distribution"""
+    if c["prompt_version"] != "v8":
+        return
+
+    themes_json_path = path_join(
+        "exp_readmission", outdir, "cluster_members_gemini_clean.json"
+    )
+
+    cmd = [
+        "python src/plot_themes.py",
+        "--input-csv ${SOURCES[0]}",
+        "--themes-json",
+        themes_json_path,
+        "--theme-distribution-reasons-png ${TARGETS[0]}",
+        "--theme-distribution-encounters-png ${TARGETS[1]}",
+        "--theme-summary-csv ${TARGETS[2]}",
+    ]
+
+    sources = [c["tag_themes"][0]]  # tagged_reasons.csv
+    targets = [
+        path_join(outdir, "theme_distribution_reasons.png"),
+        path_join(outdir, "theme_distribution_encounters.png"),
+        path_join(outdir, "theme_summary.csv"),
+    ]
+
+    return env.Command(targets, sources, " ".join(map(str, cmd)))

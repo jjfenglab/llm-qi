@@ -1,0 +1,117 @@
+You are a clinical quality improvement researcher analyzing hospital length of stay using a two-step value stream mapping approach. This follows Lean Healthcare methodology to first map the patient journey, then identify contributing operational factors that, if modified, would likely shorten hospital stay.
+
+Clinical Note(s)/Timeline:
+{note_text}
+
+=== STEP 1: VALUE STREAM MAPPING - PATIENT JOURNEY GANTT CHART ===
+
+First, create a Gantt chart that maps the key phases of the patient's hospital stay. Focus on essential care phases, treatment periods, and potential bottlenecks/delays that may have contributed to extended length of stay (LOS).
+
+Guidelines for creating the Gantt chart:
+1. **Map the patient journey, emphasizing events that extended LOS**: Capture essential care phases, major treatments, and delays that extended the hospital stay
+2. **Include entire hospital timeline**: Cover admission through discharge, noting when the patient was medically ready for discharge vs. actual discharge
+3. **Identify bottlenecks**: Note waiting periods, care coordination delays, resource availability issues, etc (if any)
+4. **Use best estimates for timing**: If exact timestamps aren't available, provide reasonable estimates and mark them as approximate
+5. **Cut off events that go beyond discharge**: If there are important events that extend beyond discharge, just set the end timestamp to the time of discharge.
+
+Event categories to consider, though you can introduce others:
+- **admission**: Initial care phases (ED, admission process)
+- **treatment**: Active medical treatment periods (IV medications, monitoring phases)
+- **procedure**: Specific interventions, surgeries, or procedures
+- **waiting**: Delays, waiting for results, scheduling gaps, resource availability
+- **coordination**: Care transitions, discharge planning, specialist consultations
+- **discharge**: Final discharge processes, waiting for equipment/placement
+
+=== STEP 2: LENGTH OF STAY ANALYSIS ===
+
+Using BOTH the Gantt chart timeline you created AND the clinical notes, identify contributing opertional factors that, if modified, would likely shorten LOS.
+
+Instructions:
+1. Use the Gantt chart timeline to identify when the patient was medically stable, ready for discharge, and when discharge actually occurred
+2. Identify opportunities where the patient's LOS could have been shortened. Look for bottlenecks, delays, and resource availability issues revealed by the timeline. Focus on actionable items, such as resource availability, guideline-directed medical therapy, care coordination issues. Only report contributing factors that likely increased LOS by at least 12 hours.
+3. Cross-reference timeline patterns with explicit statements in the clinical notes
+4. Explanation and evidence: Provide an explanation for why you extracted this as a contributing factor that lengthed LOS, referencing both the Gantt chart timeline and clinical notes when applicable. For each identified contributing factor, provide an EXACT quote (word-for-word) from the note. Keep quotes under 200 characters.
+5. Confidence: Assign a confidence level on a likert scale for how likely each contributing factor led to longer LOS.
+   - 3=definitely true, stated in clinical note
+   - 2=likely true, heavily implied in clinical note
+   - 1=possibly true, implied in clinical note
+   - 0=unlikely
+
+Examples of the types of opportunities under consideration:
+- Suboptimal medication titration practices
+- Delays waiting for imaging or diagnostic procedures
+- Bed availability issues in step-down or specialty units
+- Delayed specialist consultations or procedures
+- Insurance authorization delays for equipment or facilities
+- Pharmacy delays in preparing discharge medications
+- Transport delays for diagnostic procedures
+- Poor care coordination between teams
+- Inadequate discharge planning or preparation
+- Communication failures between care teams
+- Delayed test results or scheduling issues
+- Equipment or supply availability issues
+- Delays due to difficulty in locating safe discharge destination
+- Family availability for care conferences or decision-making
+- Transportation barriers affecting discharge planning
+- Financial constraints affecting post-discharge care options
+- Limited social support systems for home care
+- Language barriers affecting discharge education
+- Specialized home care arrangements leading to delay in discharge
+
+Extract the length of stay factors in structured JSON format detailed below:
+Output requirements:
+* Be concise in describing the factors using standard medical and healthcare terminology.
+* If multiple contributing factors are mentioned, list them all separately in the JSON.
+* The `relevant_quotes` field must contain EXACT quotes from the clinical note - word-for-word, with no paraphrasing or summarization. Keep it under 200 characters and select the most relevant portion. If supporting evidence spans multiple sections of note(s), include text from different parts separated by "..." (e.g., "patient had respiratory failure...later developed septic shock"). The validation interface will intelligently highlight each section separately to show all supporting evidence.
+
+Output the complete two-step analysis in this structured JSON format:
+
+{{
+  "gantt_chart": {{
+    "index_admission_summary": "Brief summary of the stated reason for patient's admission. Summarize only, no interpretation.",
+    "events": [
+      {{
+        "event_id": 1,
+        "label": "IV Antibiotic Treatment",
+        "category": "treatment",
+        "description": "Intravenous antibiotic course for infection",
+        "start_time": "2024-01-10 08:00",
+        "end_time": "2024-01-15 12:00",
+        "relevant_quotes": "Started on IV vancomycin for surgical site infection"
+      }},
+      {{
+        "event_id": 2,
+        "label": "Waiting for Outpatient Imaging",
+        "category": "waiting",
+        "description": "Delay for outpatient MRI availability despite medical readiness for discharge",
+        "start_time": "2024-01-15 10:00",
+        "end_time": "2024-01-18 14:00",
+        "time_uncertainty": "estimated",
+        "relevant_quotes": "Patient ready for discharge...waiting 3 days for outpatient MRI availability"
+      }}
+    ]
+  }},
+  "reasons": [
+      {{
+        "reason": "delayed discharge due to imaging availability",
+        "category": "operational",
+        "confidence": 3,
+        "explanation": "Based on the Gantt chart timeline, patient was medically ready for discharge but had to wait 3 days for outpatient imaging availability",
+        "relevant_quotes": "Patient ready for discharge but waiting 3 days for outpatient MRI availability"
+      }},
+      {{
+        "reason": "lack of safe discharge destination",
+        "category": "social",
+        "confidence": 2,
+        "explanation": "The patient had housing instability that delayed discharge",
+        "relevant_quotes": "Social work stated unable to identify safe discharge location...wait until shelter availability"
+      }},
+      {{
+        "reason": "switch from IV to oral antibiotics was delayed",
+        "category": "clinical",
+        "confidence": 2,
+        "explanation": "The patient stayed on IV antibiotics two days longer than necessary",
+        "relevant_quotes": "vitals stable early"
+      }}
+  ]
+}}

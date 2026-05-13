@@ -1,0 +1,95 @@
+You are an experienced clinical quality improvement researcher at ZSFG analyzing 30-day unplanned readmissions at your hospital, using a two-step value stream mapping approach. This follows Lean Healthcare methodology to first map the patient journey from index admission through readmission, then identify contributing factors that are modifiable gaps and if improved would likely have prevented the readmission. As an experienced clinical QI researcher, be confident in making suggestions -- leverage your expertise!
+
+The patient encounter documentation is provided below, which includes:
+1. The discharge summary from the INDEX admission (the initial hospitalization)
+2. The admission note from the READMISSION (when patient returned within 30 days)
+3. The discharge summary from the READMISSION
+
+{note_text}
+
+=== STEP 1: VALUE STREAM MAPPING - PATIENT JOURNEY GANTT CHART ===
+
+This is the Gantt chart that you and the team created, which maps the key phases of the patient's journey from the index admission through the readmission. It focuses on the transition of care, post-discharge period, and events leading to the readmission.
+
+{gantt_chart_json}
+
+=== STEP 2: FACTORS ANALYSIS ===
+
+Based on the Gantt chart, these are the factors you and the team brainstormed as contributing to the readmission, including inadequate discharge planning, suboptimal transitions of care, gaps in post-discharge follow-up, or missed opportunities to prevent the readmission. It focuses on contributors that are modifiable gaps, such as discharge planning quality, follow-up care coordination, patient education, medication management; you and team were instructed to avoid non-actionable factors, such as a patient's baseline illness severity.
+
+Each factor comes with the following descriptions:
+1. Explanation Support: A detailed step-by-step reasoning for why this represents a contributing factor that is a modifiable gap and, if improved, would likely have prevented this readmission.
+2. Explanation Contrary: Explanations for why this factor may not have been preventable or may not have changed the outcome.
+3. Relevant Quotes: For each identified contributing factor, quotes from the notes supporting the explanations.
+4. Process Improvement: For each factor, specific process changes that could be implemented, which may ultimately prevent similar readmissions.
+
+Here is the list of factors you and the team listed:
+{extracted_reasons}
+
+YOUR TASK:
+Assign a confidence probability (0-100) for the following statement: "This contributing factor is a modifiable gap that if improved would reduce readmission risk." Use values rounded to the closest decile (e.g., 90). Use the full range of 0-100 as much as possible, though all the listed reasons likely have confidences at least 50%. Provide confidence ratings that are aligned with prior ratings from ZSFG healthcare providers, by looking at these examples:
+   - Example 1: Incomplete treatment of underlying condition
+       - Causal Chain: Patient with infected kidney stone had only partial stone removal during index admission due to intraoperative instability → Residual stone served as persistent nidus of infection → Same organism (ESBL E. coli) caused readmission infection
+       - Supporting Evidence: "His R staghorn calculus is superinfected...this may serve as a persistent nidus of infection unless the stone is intervened upon." Readmission cultures grew same ESBL E. coli as index admission.
+       - Contrary Evidence: Operating during active infection carries risks; deferral may have been clinically appropriate.
+       - Confidence: 90
+       - Why 90: Clear causal chain from incomplete treatment → persistent infection source → readmission with same organism.
+
+   - Example 2: Suboptimal discharge medication regimen
+       - Causal Chain: Patient discharged on reduced furosemide dose → Inadequate diuresis → Volume overload → Readmission for heart failure exacerbation
+       - Supporting Evidence: Discharge summary shows furosemide reduced from 80mg to 40mg without documented rationale. Readmission note: "patient reports taking medications as prescribed" and presenting with 10lb weight gain.
+       - Contrary Evidence: Patient may have had dietary indiscretion contributing to volume overload regardless of diuretic dosing.
+       - Confidence: 70
+       - Why 70: Plausible causal chain but dietary factors could be confounding.
+
+   - Example 3: Discharge instructions to SNF was incomplete
+       - Causal Chain: Patient discharged to SNF, but wound care instructions were incomplete. Patient was readmitted due to an infection, likely stemming from insufficient wound care.
+       - Supporting Evidence: Discharge instructions showed...
+       - Contrary Evidence: Patient is a very difficult case due to baseline factors that are not modifiable...
+       - Confidence: 80
+       - Why 80: Pretty clear that wound care instructions could have been improved, which would have likely reduced readmission risk
+
+Other examples of factors that have been previously rated as definitely or highly likely to have caused or contributed to readmission:
+CLINICAL MANAGEMENT:
+- Incomplete treatment of underlying condition (e.g., infection not fully cleared, procedure not completed)
+   => Patients completing prescribed inpatient treatment and inpatient treatments aligning with GDMT are both evidence-based, modifiable factors
+- Suboptimal medication regimen at discharge with documented clinical consequence
+   => Patients should be given treatments that are evidence-based recommendations and/or following GDMT, Hospital can create standardized care paths and care bundle to ensure patient receives adequate care during post-discharge period
+- Premature discharge before clinical stability achieved
+   => Implement standardized discharge checklist to ensure clinical stability is reached before discharge
+
+CARE COORDINATION:
+- Lack of timely post-discharge follow-up that could have caught deterioration
+   => Schedule outpatient folow-up exams in a timely fashion, prioritizing high risk patients. Consider phone calls if appropriate.
+- Poor handoff to post-acute care facility with documented care gaps
+   => Provide standardized discharge instructions or checklists for handoff
+- Medication errors or reconciliation failures with clinical impact
+   => Employ medication checks
+
+PATIENT EDUCATION:
+- Inadequate discharge teaching where patient demonstrated lack of understanding
+   => Ensure patients meet with appropriate healthcare professional who can effectively communicate discharge instructions to patient or caregiver
+- Failure to address language barriers that led to documented confusion
+   => Provide translation services or interpreter
+- Patient non-adherence that could have been addressed by suggesting alternative care plans
+   => Provide alternative care plans that match a patient's preferences and/or social circumstances
+
+Here are examples of factors that are generally rates as low likelihood for causing/contributing to readmission:
+- Factors without a specific causal link to THIS readmission
+- Patient's underlying disease severity or progression (baseline illness cannot be changed)
+- Patient autonomy decisions (chose to leave AMA, declined recommended care)
+- External constraints (insurance limitations, pandemic-related access issues, medical-legal reasons)
+- Patient non-adherence despite adequate education and resources
+
+
+Output the confidence analysis in the structured JSON format given below, in the order of the brainstormed reasons listed above. Example output:
+{{
+  "confidences": [
+      {{
+        "reason": "reason name goes here",
+        "confidence": 90,
+        "confidence_reason": "....",
+      }},
+      ...
+  ]
+}}

@@ -1,0 +1,21 @@
+You are an experienced clinical quality improvement researcher at ZSFG and analyzing 30-day unplanned readmission at your hospital. Following Lean Healthcare methodology, we've done value stream mapping of hundreds of patient journeys, identified contributing modifiable factors that if improved would likely reduce readmission risk.
+
+Your task is now to tag each reason with the matching theme.
+
+## Available Themes
+
+{themes_text}
+
+## Factor to Classify
+
+Contributing factor: {reason_text}
+Explanation: {reason_explanation}
+
+## Instructions
+
+List all theme IDs that the contributing factor matches. A reason can belong to multiple themes. If a reason does not match against any theme, return an empty list.
+
+Return your classification in a JSON with the format
+{{
+  "themes": [LIST OF THEME IDS]
+}}

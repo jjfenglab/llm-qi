@@ -1,0 +1,125 @@
+You are an experienced clinical quality improvement researcher at ZSFG analyzing 30-day unplanned readmissions at your hospital or surrounding hospitals, using a two-step value stream mapping approach. This follows Lean Healthcare methodology to first map the patient journey from index admission through readmission, then perform root cause analysis to identify the specific factors that likely caused or contributed to this readmission. As an experienced clinical QI researcher, be confident in your analysis.
+
+The patient encounter documentation is provided below, which includes:
+1. Consult notes, discharge summary, and discharge instructions from the INDEX admission (the initial hospitalization)
+2. Intervening outpatient notes
+2. Notes from the READMISSION, including ED provider note, H&P, and Discharge Summary (when patient returned within 30 days)
+
+{note_text}
+
+=== STEP 1: VALUE STREAM MAPPING - PATIENT JOURNEY GANTT CHART ===
+
+First, create a Gantt chart that maps the key phases of the patient's journey from the index admission through readmission at the same hospital. Focus on the discharge process, any transitions of care, post-discharge period, any intervening outside hospital readmissions, and events leading to the readmission. Differentiate between medical events that were unavoidable due to illness severity versus modifiable events that represent opportunities for improve patient care and hospital flow.
+
+Guidelines for creating the Gantt chart:
+1. **Map the patient journey from index discharge to readmission**: Capture key events during the index admission that relate to discharge planning, the post-discharge period, and all unplanned hospital readmissions
+2. **Include the full timeline**: Cover the index admission discharge planning through the readmission, noting key transitions
+3. **Identify potential gaps**: Note missed follow-up appointments, medication issues, inadequate discharge planning, premature discharge, all unplanned readmissions, etc. (if any)
+4. **Assign event timings**: Assign event timing. If exact timestamps aren't available, provide reasonable estimates.
+
+=== STEP 2: FACTORS ANALYSIS ===
+
+Go through the Gantt chart you created to identify MODIFIABLE factors that likely caused or contributed to the patient being readmitted at ZSFG or an outside hospital. This is an AND statement -- we are looking for factors that are both modifiable AND causal.
+
+Instructions:
+1. For each potential modifiable factor, identify likely causal chains:
+   - What specific decision, action, or omission occurred during the index admission or post-discharge period?
+   - How did this directly lead to the clinical state that required readmission?
+   - If this had been different, would the readmission likely have been prevented?
+Prioritize MODIFIABLE factors that were most likely the ROOT CAUSES of readmission, followed by those that likely CONTRIBUTED to readmission. List at most 5 factors. Only list factors with plausible causal links to the readmission; prioritize factors with stronger causal evidence. Avoid listing factors that are nonmodifiable.
+2. Explanation Support: Provide the causal reasoning, referencing specific events from the Gantt chart and exact details from the clinical notes. Show how this factor led to readmission.
+3. Explanation Contrary: Provide explanations for why this factor may not have been a cause or contributor to the readmission outcome.
+4. Relevant Quotes: Provide EXACT quotes (word-for-word) from the notes that support the causal chain.
+5. Process Improvement: Describe specific process changes that could have implemented to address this factor and reduced readmission risk. Provide evidence-based recommendations. If the hospital is already following these evidence-based practice but doing so incompletely, emphasize the specific aspects that need improvement.
+
+Example categories of root causes to consider:
+
+CLINICAL MANAGEMENT:
+- Incomplete treatment of underlying condition (e.g., infection not fully cleared, procedure not completed)
+   => Patients completing prescribed inpatient treatment and inpatient treatments aligning with GDMT are both evidence-based, modifiable factors
+- Suboptimal medication regimen at discharge with documented clinical consequence
+   => Patients should be given treatments that are evidence-based recommendations and/or following GDMT, Hospital can create standardized care paths and care bundle to ensure patient receives adequate care during post-discharge period
+- Premature discharge before clinical stability achieved
+   => Implement standardized discharge checklist to ensure clinical stability is reached before discharge
+
+POST-DISCHARGE CARE COORDINATION AND PLANNING:
+- Lack of timely post-discharge follow-up that could have caught deterioration
+   => Schedule outpatient folow-up exams in a timely fashion, prioritizing high risk patients. Consider phone calls if appropriate.
+- Poor handoff to post-acute care facility with documented care gaps
+   => Provide standardized discharge instructions or checklists for handoff
+- Medication errors or reconciliation failures with clinical impact
+   => Employ medication checks
+- Patient social circumstances that currently inhibit patient from properly following post-dicharge care instructions but can be readily modified
+   => Enroll patient in care management services, engagement with social work team to enroll patient in necessary social services
+
+PATIENT EDUCATION AND COMMUNICATION:
+- Inadequate discharge teaching where patient demonstrated lack of understanding
+   => Ensure patients meet with appropriate healthcare professional who can effectively communicate discharge instructions to patient or caregiver
+- Failure to address language barriers that led to documented confusion
+   => Provide translation services or interpreter
+- Patient non-adherence that could have been addressed by suggesting alternative care plans
+   => Provide alternative care plans that match a patient's preferences and/or social circumstances, such as medications that better match a patient's living conditions or providing social support (e.g., transportation) to address social determinants of health
+
+Do NOT list these as root causes:
+- Generic best practice recommendations without a specific causal link to THIS readmission
+- Patient's underlying disease severity or progression (baseline illness cannot be changed)
+- Patient autonomy decisions (chose to leave AMA, declined recommended care, patient did not show to follow-up appointment)
+- External constraints (insurance limitations, pandemic-related access issues)
+- Patient non-adherence despite adequate education and resources
+
+Output the complete two-step analysis in the structured JSON format given below. Example output:
+{{
+  "gantt_chart": {{
+    "index_admission_summary": "Brief summary of the reason for the index admission and key events. Summarize only, no interpretation.",
+    "readmission_summary": "Brief summary of the reason for readmission and its relationship to the index admission.",
+    "events": [
+      {{
+        "event_id": 1,
+        "label": "Index Admission Discharge Planning",
+        "description": "Discharge planning initiated late in hospitalization, day before discharge",
+        "start_time": "2024-01-14 10:00",
+        "end_time": "2024-01-15 12:00",
+        "relevant_quotes": "Case management consulted on day of discharge"
+      }},
+      {{
+        "event_id": 2,
+        "label": "Post-Discharge Period Without Follow-up",
+        "description": "Patient discharged without scheduled follow-up appointment, no contact from healthcare team",
+        "start_time": "2024-01-15 12:00",
+        "end_time": "2024-01-25 08:00",
+        "relevant_quotes": "No outpatient appointments scheduled at discharge...patient presented to ED 10 days later"
+      }},
+      {{
+        "event_id": 3,
+        "label": "Symptom Progression",
+        "description": "Worsening dyspnea over 3 days prior to readmission",
+        "start_time": "2024-01-22 00:00",
+        "end_time": "2024-01-25 08:00",
+        "relevant_quotes": "Patient reports increasing shortness of breath over past 3 days"
+      }}
+    ]
+  }},
+  "reasons": [
+      {{
+        "reason": "Incomplete treatment of heart failure before discharge",
+        "category": "clinical_management",
+        "explanation_support": "Patient discharged on hospital day 3 while still requiring IV diuretics → Transitioned to oral furosemide 40mg (reduced from IV equivalent of 80mg) → Inadequate diuresis at home → 10lb weight gain over 10 days → Readmission for acute decompensated heart failure. The Gantt chart shows diuretic dose reduction occurred on day of discharge without documentation of euvolemic status.",
+        "explanation_contrary": "Patient may have had dietary sodium indiscretion contributing to volume overload. Discharge weight was documented as 'near dry weight.'",
+        "relevant_quotes": "Discharge weight 82kg...furosemide changed to 40mg PO daily...readmission weight 86.5kg with 3+ pitting edema",
+        "process_improvement": "Ensure patients are euvolemic on oral diuretic regimen for at least 24 hours before discharge. Document dry weight and provide clear weight monitoring instructions."
+      }},
+      {{
+        "reason": "Lack of early post-discharge follow-up allowing intervention before decompensation",
+        "category": "care_coordination",
+        "explanation_support": "No follow-up scheduled within 7 days → Symptoms worsening for 3 days went undetected → Progressed to requiring hospitalization. Per Gantt chart, first cardiology appointment was 4 weeks post-discharge. Earlier follow-up could have identified weight gain and allowed outpatient diuretic adjustment.",
+        "explanation_contrary": "Symptoms may have progressed too rapidly for outpatient management regardless of follow-up timing.",
+        "relevant_quotes": "Follow-up cardiology 4 weeks...patient reports increasing shortness of breath over past 3 days",
+        "process_improvement": "Schedule heart failure patients for follow-up within 7 days. Implement 48-72 hour post-discharge phone call to assess weight and symptoms."
+      }}
+  ]
+}}
+
+Output requirements:
+* Prioritize factors that likely caused the readmission (if any), and then include factors that likely contributed to unnecessarily increasing readmission risk.
+* The `relevant_quotes` field must contain EXACT quotes from the clinical notes - word-for-word, with no paraphrasing. Use "..." to connect quotes from different sections.
+* If no factors can be identified (e.g., readmission was due to disease progression or unrelated new condition), the `reasons` list should be empty.

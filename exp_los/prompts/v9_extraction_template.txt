@@ -1,0 +1,92 @@
+You are an experienced clinical quality improvement researcher at ZSFG and analyzing inpatient length of stay at your hospital, using a two-step value stream mapping approach. This follows Lean Healthcare methodology to first map the patient journey, then identify contributing factors that are modifiable gaps and if improved would likely shorten hospital stay. As an experience clinical QI researcher, be confident in making suggestions -- leverage your expertise!
+
+The patient encounter timeline is fully captured below, which includes ALL clinical events and ALL notes written for this patient encounter:
+{note_text}
+
+=== STEP 1: VALUE STREAM MAPPING - PATIENT JOURNEY GANTT CHART ===
+
+The following Gantt chart has already been created mapping the key phases of the patient's hospital stay:
+
+{gantt_chart_json}
+
+=== STEP 2: FACTORS ANALYSIS ===
+
+Go through the Gantt chart above to identify MODIFIABLE factors that likely caused or contributed to extended length of stay. This is an AND statement -- we are looking for factors that are both modifiable AND causal.
+
+Instructions:
+1. Going through the Gantt chart, identify opportunities where there was excessive delay, suboptimal coordination/processes, or prolonged duration, which likely led to LOS being lengthened by 12+ hours. Only list contributors that are actionable, such as resource availability, guideline-directed medical therapy, care coordination issues; avoid listing a patient's illness severity as a factor. Prioritize listing factors that very likely increased LOS by 12+ hours. List at most 5 factors.
+2. Explanation Support: Provide detailed step-by-step reasoning for why this represents a contributing factor that led to prolonged LOS or suboptimal patient flow, referencing both the Gantt chart timeline and clinical notes when applicable.
+3. Explanation Contrary: Provide explanations for why this factor may not need to be or cannot be optimized further.
+4. Relevant Quotes: For each identified contributing factor, provide EXACT quotes (word-for-word) from the note. Quotes should support all components of your explanation.
+5. Process Improvement: For each factor, describe what specific process change could be implemented, which may ultimately shorten LOS. Focus on timing and workflow changes within the hospital's control.
+
+Example categories of factors to consider:
+
+HIGHLY ACTIONABLE factors (should be assigned high confidence >= 90%):
+- Lack of weekend hospital services
+   => Add weekend hospital service
+- Needing better parallelization of tasks, such as initiating discharge planning late (after patient medically stable rather than proactively)
+   => Can be optimized by starting discharge planning early or better parallelization of tasks
+- Social work consulted only after barriers emerged rather than at admission
+   => Early SW involvement should be initiated by the team or proactively
+- Insurance pre-authorization not initiated early in admission
+   => Initiate insurance pre-authorization as soon as possible
+- Care conference scheduled late, delaying family decision-making
+   => Family decision-making can begin much earlier, with SW beginning early conversations with family
+- Anticipated equipment needs not ordered until day of discharge
+   => known equipment needs should be ordered asap, so that it does not delay discharge
+- Delayed specialist consultations or procedures
+   => if the specialist is needed, consult request should be placed as soon as possible and the consult should occur within 24 hours
+- Suboptimal medication titration practices prolonging treatment
+   => teams should follow guideline directed medical therapy and best practices
+- Suboptimal care or processes that led to prolonged LOS
+   => teams should follow guideline directed medical therapy and best practices
+- Pharmacy delays in preparing discharge medications
+   => pharmacy should be asked to prepare discharge meds once they are known so that it does not prolong LOS
+- Poor care coordination or communication between teams
+   => improve care communication and scheduling between different teams
+- Delayed test results or scheduling issues
+   => tests should not be delayed more than 24 hours, scheduling should be done also within 24 hours if not sooner
+- Transport delays for discharge, diagnostic procedures, etc
+   => transport should be coordinated early
+- ICU/step-down bed request placed late in clinical trajectory (where the issue is lack of planning, rather than a hospital bed capacity issue)
+   => Make bed requests earlier
+
+Do NOT list these as factors (NON-actionable observations):
+- Bed capacity constraints (Bed capacity cannot be increased directly so it is NOT directly modifiable. Instead the hospital should focus on other modifiable factors)
+- No ICU/step-down beds available. Extended ED boarding, as likely reason is lack of ICU beds. (bed capacity cannot be increased directly)
+- SNF or rehab facilities at capacity (external constraint)
+- Patient's family unavailable (external constraint)
+- Insurance denied authorization (external constraint)
+- Medical-legal requirements (e.g., required observation periods, mandatory monitoring durations, court-ordered holds)
+- Regulatory or compliance-mandated waiting periods
+- Patient's underlying disease severity or progression (baseline illness cannot be changed)
+- Note: Expected time for imaging procedures and consult completion from order placement to completion is approximately 24 hours. Waiting times beyond this timeframe should be considered intervenable to reduce LOS.
+
+Output the factors analysis in the structured JSON format given below. Example output:
+{{
+  "reasons": [
+      {{
+        "reason": "late initiation of outpatient imaging scheduling",
+        "category": "operational",
+        "explanation_support": "Based on the Gantt chart timeline, patient was medically ready for discharge but had to wait 3 days for outpatient imaging. The MRI was not scheduled until after medical readiness was established.",
+        "explanation_contrary": "A possible reason why the delay was necessary is...",
+        "relevant_quotes": "Patient ready for discharge but pending MRI... MRI completed",
+        "process_improvement": "Outpatient MRI could have been scheduled 2-3 days earlier when discharge trajectory became clear, reducing wait time."
+      }},
+      {{
+        "reason": "late initiation of discharge planning",
+        "category": "social",
+        "explanation_support": "Social work involvement began only after patient was medically ready, rather than proactively during admission when housing instability was identified.",
+        "explanation_contrary": "Possible reasons why this was not initiated late is that...",
+        "relevant_quotes": "Social work stated unable to identify safe discharge location...wait until shelter availability",
+        "process_improvement": "Social work consult and shelter/placement search could have been initiated on admission day when housing instability was documented, allowing parallel processing."
+      }}
+  ]
+}}
+
+Output requirements:
+* Prioritize factors that likely caused extended LOS (if any), and then include factors that likely contributed to unnecessarily increasing LOS.
+* The `relevant_quotes` field must contain EXACT quotes from the clinical notes - word-for-word, with no paraphrasing. Use "..." to connect quotes from different sections. Keep it under 200 characters and select the most relevant portion.
+* If no factors can be identified (e.g., LOS was due to disease severity or unavoidable medical treatment), the `reasons` list should be empty.
+* Be concise in describing the factors using standard medical and healthcare terminology.

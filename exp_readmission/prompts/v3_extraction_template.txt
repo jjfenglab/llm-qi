@@ -1,0 +1,153 @@
+You are an experienced clinical quality improvement researcher at ZSFG analyzing 30-day unplanned readmissions at your hospital, using a two-step value stream mapping approach. This follows Lean Healthcare methodology to first map the patient journey from index admission through readmission, then perform root cause analysis to identify the specific factors that likely caused or contributed to this readmission. As an experienced clinical QI researcher, be confident in your analysis.
+
+The patient encounter documentation is provided below, which includes:
+1. Consult notes, discharge summary, and discharge instructions from the INDEX admission (the initial hospitalization)
+2. Intervening outpatient notes
+2. Notes from the READMISSION, including ED provider note, H&P, and Discharge Summary (when patient returned within 30 days)
+
+{note_text}
+
+=== STEP 1: VALUE STREAM MAPPING - PATIENT JOURNEY GANTT CHART ===
+
+First, create a Gantt chart that maps the key phases of the patient's journey from the index admission through the readmission. Focus on the discharge process, any transitions of care, post-discharge period, and events leading to the readmission. Differentiate between medical events that were unavoidable due to illness severity versus modifiable events that represent opportunities for improve patient care and hospital flow.
+
+Guidelines for creating the Gantt chart:
+1. **Map the patient journey from index discharge to readmission**: Capture key events during the index admission that relate to discharge planning, the post-discharge period, and the readmission
+2. **Include the full timeline**: Cover the index admission discharge planning through the readmission, noting key transitions
+3. **Identify potential gaps**: Note missed follow-up appointments, medication issues, inadequate discharge planning, premature discharge, etc. (if any)
+4. **Assign event timings**: Assign event timing. If exact timestamps aren't available, provide reasonable estimates and mark them as approximate.
+
+Event categories to consider, though you can introduce others:
+- **index_admission**: Index admission event
+- **readmission**: Readmission event
+- **treatment**: treatments given during index admission or readmission
+- **procedure**: procedures given during index admission or readmission
+- **waiting**: delays, waiting for results, scheduling gaps, lack of resource availability during index admission or readmission
+- **discharge_planning**: Discharge preparation, patient education, medication reconciliation, follow-up scheduling
+- **transition**: Handoffs between care settings (hospital to home, hospital to SNF, etc.)
+- **outpatient_care**: Outpatient follow-up, home health visits, medication management after discharge
+- **patient_health**: Events relating to patient health, such as worsening symptoms that preceded readmission
+
+=== STEP 2: FACTORS ANALYSIS ===
+
+Go through the Gantt chart you created to identify contributing and modifiable factors that likely caused or contributed to the patient being readmitted.
+
+Instructions:
+1. For each potential root cause, identify likely causal chains:
+   - What specific decision, action, or omission occurred during the index admission or post-discharge period?
+   - How did this directly lead to the clinical state that required readmission?
+   - If this had been different, would the readmission likely have been prevented?
+Prioritize factors that most likely caused the readmission, and then consider including factors that likely contributed to the readmission. List at most 5 factors.
+2. Explanation Support: Provide the causal reasoning, referencing specific events from the Gantt chart and exact details from the clinical notes. Show how this factor led to readmission.
+3. Explanation Contrary: Provide explanations for why this factor may not have been a cause or contributor to the readmission outcome.
+4. Relevant Quotes: Provide EXACT quotes (word-for-word) from the notes that support the causal chain.
+5. Process Improvement: Describe specific process changes that could have implemented to address this factor and reduced readmission risk.
+6. Confidence: Assign a confidence probability (0-100) for the following statement: "This contributing factor is a modifiable gap that if improved would reduce readmission risk." Use values rounded to the closest decile (e.g., 90). Generally only list factors with at least 50 confidence, prioritize factors with higher confidence. Provide confidence ratings that are aligned with prior ratings from ZSFG healthcare providers, by looking at these examples:
+   - Example 1: Incomplete treatment of underlying condition
+       - Causal Chain: Patient with infected kidney stone had only partial stone removal during index admission due to intraoperative instability → Residual stone served as persistent nidus of infection → Same organism (ESBL E. coli) caused readmission infection
+       - Supporting Evidence: "His R staghorn calculus is superinfected...this may serve as a persistent nidus of infection unless the stone is intervened upon." Readmission cultures grew same ESBL E. coli as index admission.
+       - Contrary Evidence: Operating during active infection carries risks; deferral may have been clinically appropriate.
+       - Confidence: 90
+       - Why 90: Clear causal chain from incomplete treatment → persistent infection source → readmission with same organism.
+
+   - Example 2: Suboptimal discharge medication regimen
+       - Causal Chain: Patient discharged on reduced furosemide dose → Inadequate diuresis → Volume overload → Readmission for heart failure exacerbation
+       - Supporting Evidence: Discharge summary shows furosemide reduced from 80mg to 40mg without documented rationale. Readmission note: "patient reports taking medications as prescribed" and presenting with 10lb weight gain.
+       - Contrary Evidence: Patient may have had dietary indiscretion contributing to volume overload regardless of diuretic dosing.
+       - Confidence: 70
+       - Why 70: Plausible causal chain but dietary factors could be confounding.
+
+   - Example 3: Discharge instructions to SNF was incomplete
+       - Causal Chain: Patient discharged to SNF, but wound care instructions were incomplete. Patient was readmitted due to an infection, likely stemming from insufficient wound care.
+       - Supporting Evidence: Discharge instructions showed...
+       - Contrary Evidence: Patient is a very difficult case due to baseline factors that are not modifiable...
+       - Confidence: 80
+       - Why 80: Pretty clear that wound care instructions could have been improved, which would have likely reduced readmission risk
+
+Categories of root causes to consider:
+
+CLINICAL MANAGEMENT:
+- Incomplete treatment of underlying condition (e.g., infection not fully cleared, procedure not completed)
+- Suboptimal medication regimen at discharge with documented clinical consequence
+- Premature discharge before clinical stability achieved
+
+CARE COORDINATION:
+- Lack of timely post-discharge follow-up that could have caught deterioration
+- Poor handoff to post-acute care facility with documented care gaps
+- Medication errors or reconciliation failures with clinical impact
+
+PATIENT EDUCATION:
+- Inadequate discharge teaching where patient demonstrated lack of understanding
+- Failure to address language barriers that led to documented confusion
+
+Do NOT list these as root causes:
+- Generic best practice recommendations without a specific causal link to THIS readmission
+- Patient's underlying disease severity or progression (baseline illness cannot be changed)
+- Patient autonomy decisions (chose to leave AMA, declined recommended care)
+- External constraints (insurance limitations, pandemic-related access issues)
+- Patient non-adherence despite adequate education and resources
+
+Output the complete two-step analysis in the structured JSON format given below. Example output:
+{{
+  "gantt_chart": {{
+    "index_admission_summary": "Brief summary of the reason for the index admission and key events. Summarize only, no interpretation.",
+    "readmission_summary": "Brief summary of the reason for readmission and its relationship to the index admission.",
+    "events": [
+      {{
+        "event_id": 1,
+        "label": "Index Admission Discharge Planning",
+        "category": "discharge_planning",
+        "description": "Discharge planning initiated late in hospitalization, day before discharge",
+        "start_time": "2024-01-14 10:00",
+        "end_time": "2024-01-15 12:00",
+        "relevant_quotes": "Case management consulted on day of discharge"
+      }},
+      {{
+        "event_id": 2,
+        "label": "Post-Discharge Period Without Follow-up",
+        "category": "gap_in_care",
+        "description": "Patient discharged without scheduled follow-up appointment, no contact from healthcare team",
+        "start_time": "2024-01-15 12:00",
+        "end_time": "2024-01-25 08:00",
+        "time_uncertainty": "estimated",
+        "relevant_quotes": "No outpatient appointments scheduled at discharge...patient presented to ED 10 days later"
+      }},
+      {{
+        "event_id": 3,
+        "label": "Symptom Progression",
+        "category": "symptom_progression",
+        "description": "Worsening dyspnea over 3 days prior to readmission",
+        "start_time": "2024-01-22 00:00",
+        "end_time": "2024-01-25 08:00",
+        "time_uncertainty": "estimated",
+        "relevant_quotes": "Patient reports increasing shortness of breath over past 3 days"
+      }}
+    ]
+  }},
+  "reasons": [
+      {{
+        "reason": "Incomplete treatment of heart failure before discharge",
+        "category": "clinical_management",
+        "explanation_support": "Patient discharged on hospital day 3 while still requiring IV diuretics → Transitioned to oral furosemide 40mg (reduced from IV equivalent of 80mg) → Inadequate diuresis at home → 10lb weight gain over 10 days → Readmission for acute decompensated heart failure. The Gantt chart shows diuretic dose reduction occurred on day of discharge without documentation of euvolemic status.",
+        "explanation_contrary": "Patient may have had dietary sodium indiscretion contributing to volume overload. Discharge weight was documented as 'near dry weight.'",
+        "relevant_quotes": "Discharge weight 82kg...furosemide changed to 40mg PO daily...readmission weight 86.5kg with 3+ pitting edema",
+        "process_improvement": "Ensure patients are euvolemic on oral diuretic regimen for at least 24 hours before discharge. Document dry weight and provide clear weight monitoring instructions.",
+        "confidence": 80
+      }},
+      {{
+        "reason": "Lack of early post-discharge follow-up allowing intervention before decompensation",
+        "category": "care_coordination",
+        "explanation_support": "No follow-up scheduled within 7 days → Symptoms worsening for 3 days went undetected → Progressed to requiring hospitalization. Per Gantt chart, first cardiology appointment was 4 weeks post-discharge. Earlier follow-up could have identified weight gain and allowed outpatient diuretic adjustment.",
+        "explanation_contrary": "Symptoms may have progressed too rapidly for outpatient management regardless of follow-up timing.",
+        "relevant_quotes": "Follow-up cardiology 4 weeks...patient reports increasing shortness of breath over past 3 days",
+        "process_improvement": "Schedule heart failure patients for follow-up within 7 days. Implement 48-72 hour post-discharge phone call to assess weight and symptoms.",
+        "confidence": 70
+      }}
+  ]
+}}
+
+Output requirements:
+* Prioritize factors that likely caused the readmission (if any), and then include factors that likely contributed to unnecessarily increasing readmission risk.
+* The `relevant_quotes` field must contain EXACT quotes from the clinical notes - word-for-word, with no paraphrasing. Use "..." to connect quotes from different sections.
+* If no factors can be identified (e.g., readmission was due to disease progression or unrelated new condition), the `reasons` list should be empty.
+* Use the full confidence range: 90+ for strong causal links, 70-80 for moderate links, 50-60 for weaker but plausible links.

@@ -1,0 +1,2581 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dynamic Validation Interface</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: #f5f5f5;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .container {
+            display: flex;
+            height: calc(100vh - 60px);
+        }
+
+        /* Left Sidebar - Encounter Selector */
+        .sidebar {
+            width: 130px;
+            background: white;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sidebar-header {
+            background: #34495e;
+            color: white;
+            padding: 1rem;
+            font-weight: 600;
+        }
+
+        .encounter-list {
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .encounter-item {
+            padding: 1rem;
+            border-bottom: 1px solid #f0f0f0;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .encounter-item:hover {
+            background-color: #f8f9fa;
+        }
+
+        .encounter-item.selected {
+            background-color: #3498db;
+            color: white;
+        }
+
+        .encounter-item.completed {
+            /* No special background - only selected items are highlighted */
+        }
+
+        .encounter-id {
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+
+        .y-value {
+            font-weight: 400;
+            color: #3498db;
+            font-size: 0.85rem;
+        }
+
+        .encounter-meta {
+            font-size: 0.85rem;
+            color: #666;
+            margin-top: 0.25rem;
+        }
+
+        .encounter-item.selected .encounter-meta {
+            color: #ecf0f1;
+        }
+
+        .encounter-item.completed .encounter-meta {
+            /* No special color - only selected items change text color */
+        }
+
+        .encounter-item.no-reasons {
+            background-color: #f8f9fa;
+            border-left: 3px solid #dee2e6;
+        }
+
+        .encounter-item.no-reasons:hover {
+            background-color: #e9ecef;
+        }
+
+        .encounter-item.no-reasons.selected {
+            background-color: #6c757d;
+            border-left-color: #495057;
+        }
+
+        .pagination {
+            padding: 0.5rem;
+            border-top: 1px solid #e0e0e0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.8rem;
+        }
+
+        .pagination button {
+            padding: 0.25rem 0.5rem;
+            border: 1px solid #ddd;
+            background: white;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 0.8rem;
+        }
+
+        .pagination button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .pagination button:not(:disabled):hover {
+            background: #f8f9fa;
+        }
+
+        /* Center-Left Panel - Clinical Note */
+        .note-panel {
+            width: 400px;
+            background: white;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .note-header {
+            background: #34495e;
+            color: white;
+            padding: 1rem;
+            font-weight: 600;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        #note-section-select {
+            background: #2c3e50;
+            color: white;
+            border: 1px solid #4a6278;
+            padding: 0.3rem 0.5rem;
+            font-size: 0.9rem;
+            font-weight: 600;
+            border-radius: 4px;
+            cursor: pointer;
+            max-width: 300px;
+        }
+
+        #note-section-select:hover {
+            background: #3d5166;
+        }
+
+        .note-content {
+            flex: 1;
+            padding: 1.5rem;
+            overflow-y: auto;
+            line-height: 1.6;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            position: relative;
+            white-space: pre-wrap;
+        }
+
+        /* XML tag styling */
+        .section-header {
+            font-weight: bold;
+            color: #2c3e50;
+            background-color: #ecf0f1;
+            padding: 1px 3px;
+            border-radius: 2px;
+            font-size: 0.9em;
+        }
+
+        /* Text highlighting styles - hidden by default, shown when active */
+        .highlight {
+            padding: 2px 4px;
+            border-radius: 3px;
+        }
+
+        /* Only show highlight styling when active */
+        .highlight.highlight-active {
+            font-weight: 600;
+            background-color: #fff59d;
+            border: 2px solid #ffc107;
+            box-shadow: 0 2px 8px rgba(255, 193, 7, 0.4);
+        }
+
+        .highlight.highlight-active:hover {
+            box-shadow: 0 2px 12px rgba(255, 193, 7, 0.6);
+            cursor: pointer;
+        }
+
+        /* Clickable cards */
+        .clickable-quote {
+            cursor: pointer;
+            transition: transform 0.1s, box-shadow 0.1s;
+        }
+
+        .clickable-quote:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        }
+
+        .clickable-quote:active {
+            transform: translateY(0);
+        }
+
+        /* Center-Right Panel - Gantt Chart */
+        .gantt-panel {
+            width: 450px;
+            background: white;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .gantt-header {
+            background: #27ae60;
+            color: white;
+            padding: 1rem;
+            font-weight: 600;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .gantt-content {
+            flex: 1;
+            padding: 1rem;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .gantt-chart {
+            margin-bottom: 1rem;
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .gantt-timeline {
+            position: relative;
+            padding: 1rem;
+            background: white;
+            min-height: 150px;
+        }
+
+        .gantt-event-bar {
+            height: 20px;
+            margin: 2px 0;
+            border-radius: 3px;
+            display: flex;
+            align-items: center;
+            padding: 0 8px;
+            font-size: 0.75rem;
+            color: white;
+            position: relative;
+        }
+
+        .gantt-event-label {
+            position: absolute;
+            left: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-weight: 500;
+        }
+
+        .event-admission { background-color: #3498db; }
+        .event-treatment { background-color: #e74c3c; }
+        .event-procedure { background-color: #9b59b6; }
+        .event-waiting { background-color: #f39c12; }
+        .event-coordination { background-color: #1abc9c; }
+        .event-discharge { background-color: #2ecc71; }
+
+        .event-details-container:hover .event-detail-box {
+            opacity: 0.3;
+        }
+
+        .event-details-container .event-detail-box:hover {
+            opacity: 1;
+        }
+
+        .event-detail-box {
+            transition: opacity 0.15s ease;
+        }
+
+        .gantt-feedback {
+            margin-top: 1rem;
+            border-top: 1px solid #e0e0e0;
+            padding-top: 1rem;
+        }
+
+        .gantt-feedback label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: #555;
+        }
+
+        .gantt-feedback textarea {
+            width: 100%;
+            min-height: 80px;
+            padding: 0.5rem;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            resize: vertical;
+            font-family: inherit;
+        }
+
+        /* Right Panel - Extracted Reasons */
+        .reasons-panel {
+            flex: 1;
+            background: white;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .reasons-header {
+            background: #34495e;
+            color: white;
+            padding: 1rem;
+            font-weight: 600;
+        }
+
+        .reasons-content {
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .reason-item {
+            padding: 1rem;
+            border-bottom: 1px solid #f0f0f0;
+            transition: all 0.2s ease;
+            border-radius: 4px;
+            margin: 0.5rem;
+        }
+
+        .reason-item:hover {
+            background: #f0f8ff;
+            border-color: #2196F3;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            cursor: pointer;
+        }
+
+        .reason-text {
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+            line-height: 1.4;
+        }
+
+        .reason-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.75rem;
+            font-size: 0.85rem;
+        }
+
+        .confidence-badge {
+            padding: 0.25rem 0.5rem;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .confidence-high {
+            background-color: #d4edda;
+            color: #155724;
+        }
+
+        .confidence-medium {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+
+        .confidence-low {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+
+        .topic-info {
+            font-size: 0.8rem;
+            color: #666;
+            margin-bottom: 0.75rem;
+        }
+
+        .validation-controls {
+            display: flex;
+            gap: 0.25rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .btn {
+            padding: 0.4rem 0.5rem;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.75rem;
+            font-weight: 500;
+            transition: background-color 0.2s;
+        }
+
+        .btn-score {
+            background-color: #bdc3c7;
+            color: #2c3e50;
+            flex: 1;
+        }
+
+        .btn-score:hover {
+            background-color: #95a5a6;
+        }
+
+        .btn-score.active {
+            box-shadow: 0 0 0 2px #000;
+        }
+
+        .btn-score-1 { background-color: #c0392b; color: white; }
+        .btn-score-1:hover { background-color: #a93226; }
+        .btn-score-1.active { background-color: #922b21; }
+
+        .btn-score-2 { background-color: #e74c3c; color: white; }
+        .btn-score-2:hover { background-color: #c0392b; }
+        .btn-score-2.active { background-color: #a93226; }
+
+        .btn-score-3 { background-color: #f39c12; color: white; }
+        .btn-score-3:hover { background-color: #d68910; }
+        .btn-score-3.active { background-color: #b9770e; }
+
+        .btn-score-4 { background-color: #3498db; color: white; }
+        .btn-score-4:hover { background-color: #2980b9; }
+        .btn-score-4.active { background-color: #1f618d; }
+
+        .btn-score-5 { background-color: #27ae60; color: white; }
+        .btn-score-5:hover { background-color: #229954; }
+        .btn-score-5.active { background-color: #1e8449; }
+
+        .reviewer-notes {
+            width: 100%;
+            min-height: 60px;
+            padding: 0.5rem;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            resize: vertical;
+            font-size: 0.85rem;
+            font-family: inherit;
+        }
+
+        /* Export panel */
+        .export-panel {
+            position: fixed;
+            bottom: 1rem;
+            right: 1rem;
+        }
+
+        .btn-export {
+            background-color: #3498db;
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            box-shadow: 0 2px 8px rgba(52, 152, 219, 0.3);
+        }
+
+        .btn-export:hover {
+            background-color: #2980b9;
+        }
+
+        .btn-reveal {
+            background-color: #9b59b6;
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            box-shadow: 0 2px 8px rgba(155, 89, 182, 0.3);
+            margin-right: 0.5rem;
+        }
+
+        .btn-reveal:hover {
+            background-color: #8e44ad;
+        }
+
+        .btn-reveal.active {
+            background-color: #7d3c98;
+        }
+
+        .llm-rating {
+            display: none;
+            background-color: #f0e6f6;
+            border: 1px solid #9b59b6;
+            border-radius: 4px;
+            padding: 0.5rem;
+            margin-bottom: 0.5rem;
+            font-size: 0.85rem;
+        }
+
+        .llm-rating.visible {
+            display: block;
+        }
+
+        .llm-rating-badge {
+            display: inline-block;
+            background-color: #9b59b6;
+            color: white;
+            padding: 0.2rem 0.5rem;
+            border-radius: 12px;
+            font-weight: 600;
+            margin-left: 0.5rem;
+        }
+
+        .confidence-reason {
+            margin-top: 0.5rem;
+            font-size: 0.85rem;
+            color: #666;
+            font-style: italic;
+            line-height: 1.4;
+        }
+
+        /* Multi-part quote navigation */
+        .quote-nav {
+            display: none;
+            position: fixed;
+            bottom: 5rem;
+            right: 1rem;
+            background: #2c3e50;
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            z-index: 1000;
+            align-items: center;
+            gap: 0.75rem;
+            font-size: 0.9rem;
+        }
+
+        .quote-nav.visible {
+            display: flex;
+        }
+
+        .quote-nav-btn {
+            background: #3498db;
+            color: white;
+            border: none;
+            width: 32px;
+            height: 32px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .quote-nav-btn:hover {
+            background: #2980b9;
+        }
+
+        .quote-nav-btn:disabled {
+            background: #7f8c8d;
+            cursor: not-allowed;
+        }
+
+        .quote-nav-info {
+            min-width: 60px;
+            text-align: center;
+        }
+
+        .quote-nav-close {
+            background: transparent;
+            color: #bdc3c7;
+            border: none;
+            cursor: pointer;
+            font-size: 1.2rem;
+            padding: 0 0.25rem;
+            margin-left: 0.5rem;
+        }
+
+        .quote-nav-close:hover {
+            color: white;
+        }
+
+        /* Loading and error states */
+        .loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 200px;
+            color: #666;
+        }
+
+        .error {
+            color: #e74c3c;
+            padding: 1rem;
+            background-color: #fdf2f2;
+            border: 1px solid #fecaca;
+            border-radius: 4px;
+            margin: 1rem;
+        }
+
+        .success {
+            color: #155724;
+            padding: 1rem;
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            border-radius: 4px;
+            margin: 1rem;
+        }
+
+        /* Tab Navigation */
+        .tab-navigation {
+            display: flex;
+            background: #2c3e50;
+            border-bottom: 3px solid #34495e;
+        }
+
+        .tab-btn {
+            background: transparent;
+            color: #bdc3c7;
+            border: none;
+            padding: 1rem 2rem;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            border-bottom: 3px solid transparent;
+        }
+
+        .tab-btn:hover {
+            background: #34495e;
+            color: #ecf0f1;
+        }
+
+        .tab-btn.active {
+            background: #34495e;
+            color: white;
+            border-bottom-color: #3498db;
+        }
+
+        /* Tab Content */
+        .tab-content {
+            display: none;
+            height: calc(100vh - 60px);
+        }
+
+        .tab-content.active {
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Resize handles between panels */
+        .resize-handle {
+            width: 6px;
+            background: #e0e0e0;
+            cursor: col-resize;
+            flex-shrink: 0;
+            position: relative;
+            transition: background-color 0.2s;
+        }
+
+        .resize-handle:hover {
+            background: #3498db;
+        }
+
+        .resize-handle:active {
+            background: #2980b9;
+        }
+
+        .resize-handle::before {
+            content: '⋮';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #999;
+            font-size: 14px;
+            pointer-events: none;
+        }
+
+        .resize-handle:hover::before {
+            color: white;
+        }
+
+        /* Prevent text selection while resizing */
+        body.resizing {
+            user-select: none;
+            cursor: col-resize;
+        }
+
+        body.resizing * {
+            cursor: col-resize !important;
+        }
+
+        /* Responsive design */
+        @media (max-width: 1400px) {
+            .sidebar {
+                width: 180px;
+            }
+            .note-panel {
+                width: 350px;
+            }
+            .gantt-panel {
+                width: 400px;
+            }
+        }
+
+        @media (max-width: 1200px) {
+            .sidebar {
+                width: 160px;
+            }
+            .note-panel {
+                width: 300px;
+            }
+            .gantt-panel {
+                width: 350px;
+            }
+        }
+
+        @media (max-width: 900px) {
+            .container {
+                flex-direction: column;
+            }
+            .sidebar, .gantt-panel, .reasons-panel {
+                width: 100%;
+                height: 200px;
+            }
+            .note-panel {
+                width: 100%;
+                height: 300px;
+                margin: 1px 0;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Tab Navigation -->
+    <div class="tab-navigation">
+        <button class="tab-btn active" onclick="switchTab('validation')">Validation Interface</button>
+        <button class="tab-btn" onclick="switchTab('calibration')">Calibration Curves</button>
+        <span style="margin-left: auto; padding: 1rem; color: #bdc3c7; font-size: 0.85rem; display: flex; align-items: center; gap: 1.5rem;">
+            <span>Prompt: <strong style="color: #3498db;">{{ prompt_id }}</strong></span>
+            <span id="reviewer-input-section">
+                Reviewer: <input type="text" id="reviewer-id-input" placeholder="Enter your ID"
+                    style="width: 120px; padding: 4px 8px; border: 1px solid #555; border-radius: 4px; background: white; color: #333; font-size: 0.85rem;"
+                    onkeypress="if(event.key === 'Enter') retrieveEncounters()">
+                <button id="retrieve-btn" onclick="retrieveEncounters()"
+                    style="padding: 4px 12px; background: #27ae60; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.85rem; margin-left: 4px;">Enter</button>
+            </span>
+        </span>
+    </div>
+
+    <!-- Validation Tab Content -->
+    <div id="validation-tab" class="tab-content active">
+        <div class="container">
+            <!-- Left Sidebar - Encounter Selector -->
+            <div class="sidebar" id="sidebar-panel">
+                <div class="sidebar-header">
+                    Encounters (<span id="encounter-count">0</span>)
+                </div>
+
+                <div class="encounter-list" id="encounter-list">
+                    <div class="loading">Loading encounters...</div>
+                </div>
+
+                <div class="pagination">
+                    <button id="prev-page" disabled>◀</button>
+                    <span id="page-info">Page 1</span>
+                    <button id="next-page">▶</button>
+                </div>
+            </div>
+
+            <!-- Resize handle: Sidebar <-> Note Panel -->
+            <div class="resize-handle" data-left="sidebar-panel" data-right="note-panel"></div>
+
+            <!-- Center-Left Panel - Clinical Note Display -->
+            <div class="note-panel" id="note-panel">
+                <div class="note-header">
+                    <select id="note-section-select" onchange="jumpToSection(this.value)">
+                        <option value="">Top</option>
+                    </select>
+                </div>
+                <div class="note-content" id="note-content" onclick="clearHighlights()">
+                    <div class="loading">Select an encounter to view the clinical note</div>
+                </div>
+            </div>
+
+            <!-- Resize handle: Note Panel <-> Gantt Panel -->
+            <div class="resize-handle" data-left="note-panel" data-right="gantt-panel"></div>
+
+            <!-- Center-Right Panel - Gantt Chart -->
+            <div class="gantt-panel" id="gantt-panel">
+                <div class="gantt-header">
+                    <span id="gantt-title">Patient Journey Timeline</span>
+                </div>
+                <div class="gantt-content">
+                    <div class="gantt-chart">
+                        <div class="gantt-timeline" id="gantt-timeline">
+                            <div class="loading">Select an encounter to view the patient journey timeline</div>
+                        </div>
+                        <div class="gantt-feedback">
+                            <label for="gantt-comment">How could this timeline be improved? Any missed reasons?</label>
+                            <textarea id="gantt-comment" placeholder="Optional feedback on timeline accuracy, missing events, missing reasons, or general suggestions for improvement..."></textarea>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Resize handle: Gantt Panel <-> Reasons Panel -->
+            <div class="resize-handle" data-left="gantt-panel" data-right="reasons-panel"></div>
+
+            <!-- Right Panel - Extracted Reasons -->
+            <div class="reasons-panel" id="reasons-panel">
+                <div class="reasons-header">
+                    Extracted Reasons (<span id="reasons-count">0</span>)
+                </div>
+                <div class="reasons-content" id="reasons-content">
+                    <div class="loading">Select an encounter to view extracted reasons</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Calibration Tab Content -->
+    <div id="calibration-tab" class="tab-content" style="overflow-y: auto;">
+        <div style="padding: 2rem; text-align: center;">
+            <h2>Bayesian Calibration Curves</h2>
+            <p>Real-time calibration results based on your validation feedback.</p>
+            <button class="btn" onclick="refreshCalibration()">Refresh Calibration Plot</button>
+            <div id="calibration-content" style="margin-top: 2rem;">
+                <div class="loading">Loading calibration data...</div>
+            </div>
+            <div id="calibration-stats" style="margin-top: 1rem; text-align: left; max-width: 600px; margin-left: auto; margin-right: auto;">
+            </div>
+        </div>
+    </div>
+
+    <!-- Next/Export Button -->
+    <div class="export-panel">
+	    <button class="btn-reveal" id="reveal-btn" onclick="toggleLLMRatings()">Reveal LLM ratings</button>
+        <button class="btn-export" id="next-btn" onclick="nextEncounter()">Export and next</button>
+    </div>
+
+    <!-- Multi-part quote navigation -->
+    <div class="quote-nav" id="quote-nav">
+        <button class="quote-nav-btn" id="quote-nav-prev" onclick="prevQuotePart()">◀</button>
+        <span class="quote-nav-info" id="quote-nav-info">1 / 2</span>
+        <button class="quote-nav-btn" id="quote-nav-next" onclick="nextQuotePart()">▶</button>
+        <button class="quote-nav-close" onclick="closeQuoteNav()">×</button>
+    </div>
+
+    <script>
+        // Global state
+        const PROMPT_ID = '{{ prompt_id }}';  // Injected from Flask
+        let currentPage = 0;
+        const pageSize = 20;
+        let currentEncounter = null;
+        let encounters = [];
+        let allEncounters = [];  // All encounters for sequential navigation
+        let currentEncounterIndex = 0;  // Current position in allEncounters
+        let llmRatingsVisible = false;  // Track LLM ratings visibility
+        let activeMultiPartQuote = null;  // Track multi-part quote navigation: { baseId, partIds, currentIndex }
+
+        // In-memory validation storage (resets on page refresh)
+        let validationResults = new Map(); // encounter_id -> validation data
+
+        // Check for embedded mode (set by export script)
+        const isEmbeddedMode = typeof EMBEDDED_MODE !== 'undefined' && EMBEDDED_MODE === true;
+
+        // Helper function to get current reviewer ID
+        function getCurrentReviewerId() {
+            if (isEmbeddedMode && typeof EMBEDDED_REVIEWER_ID !== 'undefined') {
+                return EMBEDDED_REVIEWER_ID;
+            }
+            return document.getElementById('reviewer-id-input').value.trim();
+        }
+
+        // Initialize app
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeApp();
+        });
+
+        async function initializeApp() {
+            console.log('Initializing dynamic validation interface...');
+            console.log('Embedded mode:', isEmbeddedMode);
+            setupEventListeners();
+            initResizablePanels();
+
+            // In embedded mode, load data immediately and set up reviewer ID
+            if (isEmbeddedMode) {
+                console.log('Running in embedded mode with pre-loaded data');
+
+                // Set up the reviewer ID automatically
+                const reviewerIdInput = document.getElementById('reviewer-id-input');
+                const retrieveBtn = document.getElementById('retrieve-btn');
+
+                if (typeof EMBEDDED_REVIEWER_ID !== 'undefined' && EMBEDDED_REVIEWER_ID) {
+                    reviewerIdInput.value = EMBEDDED_REVIEWER_ID;
+                    reviewerIdInput.readOnly = true;
+                    reviewerIdInput.style.background = '#f8f9fa';
+                    reviewerIdInput.style.color = '#495057';
+                    reviewerIdInput.title = 'Pre-assigned reviewer ID for this validation session';
+
+                    // Hide the Enter button since reviewer ID is already set
+                    if (retrieveBtn) retrieveBtn.style.display = 'none';
+
+                    console.log('Set embedded reviewer ID:', EMBEDDED_REVIEWER_ID);
+                }
+
+                loadEmbeddedData();
+            } else {
+                // Don't load encounters yet - wait for user to enter reviewer ID
+                showWaitingForReviewer();
+            }
+        }
+
+        function loadEmbeddedData() {
+            try {
+                // Load all encounters from embedded data
+                allEncounters = EMBEDDED_DATA.encounters;
+                encounters = allEncounters.slice(0, pageSize);
+
+                console.log(`Loaded ${allEncounters.length} encounters from embedded data`);
+
+                // Render encounter list
+                renderEncounterList(encounters);
+                updateEncounterCount(EMBEDDED_DATA.total);
+                updatePagination({ has_more: allEncounters.length > pageSize });
+
+                // Load first encounter
+                if (allEncounters.length > 0) {
+                    currentEncounterIndex = 0;
+                    selectEncounter(allEncounters[0].encounter_id);
+                    updateNextButton();
+                }
+
+                showSuccess(`Loaded ${EMBEDDED_DATA.total} encounters`);
+            } catch (error) {
+                console.error('Error loading embedded data:', error);
+                showError('Failed to load embedded data: ' + error.message);
+            }
+        }
+
+        function showWaitingForReviewer() {
+            // Show message in encounter list
+            document.getElementById('encounter-list').innerHTML = '<div class="loading">Enter your Reviewer ID and click Enter to load your encounters</div>';
+            document.getElementById('encounter-count').textContent = '0';
+
+            // Show message in other panels
+            document.getElementById('note-content').innerHTML = '<div class="loading">Enter your Reviewer ID to begin</div>';
+            document.getElementById('gantt-timeline').innerHTML = '<div class="loading">Enter your Reviewer ID to begin</div>';
+            document.getElementById('reasons-content').innerHTML = '<div class="loading">Enter your Reviewer ID to begin</div>';
+        }
+
+        async function retrieveEncounters() {
+            // In embedded mode, just load from embedded data
+            if (isEmbeddedMode) {
+                loadEmbeddedData();
+                return;
+            }
+
+            const reviewerId = getCurrentReviewerId();
+
+            if (!reviewerId) {
+                showError('Please enter your Reviewer ID');
+                document.getElementById('reviewer-id-input').focus();
+                return;
+            }
+
+            // Show loading state
+            document.getElementById('encounter-list').innerHTML = '<div class="loading">Loading encounters...</div>';
+
+            try {
+                const response = await fetch('/api/retrieve', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ reviewer_id: reviewerId })
+                });
+
+                const data = await response.json();
+
+                if (!data.success) {
+                    showError(data.error || 'Failed to retrieve encounters');
+                    showWaitingForReviewer();
+                    return;
+                }
+
+                // Store encounters
+                allEncounters = data.encounters;
+                encounters = data.encounters.slice(0, pageSize);  // First page
+
+                console.log(`Loaded ${allEncounters.length} encounters for reviewer ${reviewerId}`);
+
+                // Render encounter list
+                renderEncounterList(encounters);
+                updateEncounterCount(data.total);
+                updatePagination({ has_more: allEncounters.length > pageSize });
+
+                // Load first encounter
+                if (allEncounters.length > 0) {
+                    currentEncounterIndex = 0;
+                    await selectEncounter(allEncounters[0].encounter_id);
+                    updateNextButton();
+                } else {
+                    document.getElementById('note-content').innerHTML = '<div class="loading">No encounters assigned to you</div>';
+                    document.getElementById('gantt-timeline').innerHTML = '<div class="loading">No encounters assigned</div>';
+                    document.getElementById('reasons-content').innerHTML = '<div class="loading">No encounters assigned</div>';
+                }
+
+                showSuccess(`Loaded ${data.total} encounters for reviewer ${reviewerId}`);
+
+            } catch (error) {
+                console.error('Error retrieving encounters:', error);
+                showError('Failed to retrieve encounters');
+                showWaitingForReviewer();
+            }
+        }
+
+        // Update the Next/Export button based on current position
+        function updateNextButton() {
+            const btn = document.getElementById('next-btn');
+            if (currentEncounterIndex >= allEncounters.length - 1) {
+                btn.textContent = 'Export and finish';
+            } else {
+                btn.textContent = 'Export and next';
+            }
+        }
+
+        // Next button handler - export current and go to next (or final export)
+        async function nextEncounter() {
+            // Get current reviewer ID
+            const reviewerId = getCurrentReviewerId();
+            if (!reviewerId) {
+                showError('Please enter your Reviewer ID before proceeding.');
+                if (!isEmbeddedMode) {
+                    document.getElementById('reviewer-id-input').focus();
+                }
+                return;
+            }
+
+            // Export current validations (skip backend submission in embedded mode)
+            if (!isEmbeddedMode) {
+                const exportData = generateExportData(reviewerId);
+                if (exportData.length > 0) {
+                    try {
+                        await submitValidationsToBackend(exportData, reviewerId);
+                    } catch (error) {
+                        console.error('Error submitting validations:', error);
+                        showError('Failed to submit validations');
+                        return;
+                    }
+                }
+            }
+
+            // Check if this is the last encounter
+            if (currentEncounterIndex >= allEncounters.length - 1) {
+                if (isEmbeddedMode) {
+                    // In embedded mode, offer to download CSV
+                    const exportData = generateExportData(reviewerId);
+                    if (exportData.length > 0) {
+                        downloadValidationsAsCSV(exportData);
+                        showSuccess(`Completed all ${allEncounters.length} encounters. Downloaded validation results.`);
+                    } else {
+                        showSuccess(`Completed all ${allEncounters.length} encounters.`);
+                    }
+                } else {
+                    // Final export - switch to calibration tab
+                    switchTab('calibration');
+                    showSuccess(`Completed all ${allEncounters.length} encounters. Showing calibration results.`);
+                }
+                return;
+            }
+
+            // Move to next encounter
+            currentEncounterIndex++;
+            await selectEncounter(allEncounters[currentEncounterIndex].encounter_id);
+            updateNextButton();
+
+            // Update sidebar selection if visible
+            highlightCurrentInSidebar();
+        }
+
+        // Highlight current encounter in sidebar
+        function highlightCurrentInSidebar() {
+            document.querySelectorAll('.encounter-item').forEach(item => {
+                item.classList.remove('selected');
+            });
+            const currentId = allEncounters[currentEncounterIndex]?.encounter_id;
+            if (currentId) {
+                const item = document.querySelector(`[data-encounter-id="${currentId}"]`);
+                if (item) {
+                    item.classList.add('selected');
+                }
+            }
+        }
+
+        // Panel resizing functionality
+        function initResizablePanels() {
+            const handles = document.querySelectorAll('.resize-handle');
+
+            handles.forEach(handle => {
+                handle.addEventListener('mousedown', initResize);
+            });
+        }
+
+        let currentHandle = null;
+        let leftPanel = null;
+        let rightPanel = null;
+        let startX = 0;
+        let startLeftWidth = 0;
+        let startRightWidth = 0;
+
+        function initResize(e) {
+            currentHandle = e.target;
+            leftPanel = document.getElementById(currentHandle.dataset.left);
+            rightPanel = document.getElementById(currentHandle.dataset.right);
+
+            startX = e.clientX;
+            startLeftWidth = leftPanel.offsetWidth;
+            startRightWidth = rightPanel.offsetWidth;
+
+            document.body.classList.add('resizing');
+
+            document.addEventListener('mousemove', doResize);
+            document.addEventListener('mouseup', stopResize);
+
+            e.preventDefault();
+        }
+
+        function doResize(e) {
+            if (!currentHandle) return;
+
+            const deltaX = e.clientX - startX;
+
+            // Calculate new widths
+            const newLeftWidth = startLeftWidth + deltaX;
+            const newRightWidth = startRightWidth - deltaX;
+
+            // Apply new widths (no minimum constraints per user preference)
+            if (newLeftWidth > 0 && newRightWidth > 0) {
+                leftPanel.style.width = newLeftWidth + 'px';
+                leftPanel.style.flex = 'none';
+
+                // For the rightmost panel (reasons-panel), keep it flexible
+                if (rightPanel.id === 'reasons-panel') {
+                    // Don't set width, let it flex
+                } else {
+                    rightPanel.style.width = newRightWidth + 'px';
+                    rightPanel.style.flex = 'none';
+                }
+            }
+        }
+
+        function stopResize() {
+            currentHandle = null;
+            leftPanel = null;
+            rightPanel = null;
+
+            document.body.classList.remove('resizing');
+
+            document.removeEventListener('mousemove', doResize);
+            document.removeEventListener('mouseup', stopResize);
+        }
+
+        // Collect all related highlight IDs (parts and occurrences) for a quote
+        function collectAllRelatedHighlightIds(baseId) {
+            const allIds = [];
+
+            // Extract the true base ID (without -part or -occur suffixes)
+            const trueBaseId = baseId.replace(/-(?:part\d+|occur\d+).*$/, '');
+
+            // Find all elements that start with the true base ID
+            const allHighlights = document.querySelectorAll(`[id^="${trueBaseId}"]`);
+
+            // Collect and sort all related IDs
+            const idList = Array.from(allHighlights).map(el => el.id);
+
+            // Sort the IDs in a logical order for navigation:
+            // 1. Base ID first
+            // 2. Base ID occurrences (-occur0, -occur1, etc.)
+            // 3. Parts (-part1, -part1-occur0, -part1-occur1, -part2, etc.)
+            idList.sort((a, b) => {
+                // Helper to extract part and occurrence numbers
+                const getOrderNumbers = (id) => {
+                    const partMatch = id.match(/-part(\d+)/);
+                    const occurMatch = id.match(/-occur(\d+)$/);
+
+                    return {
+                        partNum: partMatch ? parseInt(partMatch[1]) : 0,
+                        occurNum: occurMatch ? parseInt(occurMatch[1]) : 0,
+                        isPart: partMatch !== null,
+                        isOccurrence: occurMatch !== null,
+                        isBase: id === trueBaseId
+                    };
+                };
+
+                const aOrder = getOrderNumbers(a);
+                const bOrder = getOrderNumbers(b);
+
+                // Base ID always comes first
+                if (aOrder.isBase && !aOrder.isOccurrence) return -1;
+                if (bOrder.isBase && !bOrder.isOccurrence) return 1;
+
+                // Then sort by part number
+                if (aOrder.partNum !== bOrder.partNum) {
+                    return aOrder.partNum - bOrder.partNum;
+                }
+
+                // Within same part, sort by occurrence number
+                return aOrder.occurNum - bOrder.occurNum;
+            });
+
+            return idList;
+        }
+
+        // Scroll to highlight functionality - activates only the clicked quote
+        function scrollToHighlight(highlightId) {
+            // First, clear all existing active highlights
+            document.querySelectorAll('.highlight.highlight-active').forEach(el => {
+                el.classList.remove('highlight-active');
+            });
+
+            const highlightElement = document.getElementById(highlightId);
+
+            if (highlightElement) {
+                // Add the active highlight class
+                highlightElement.classList.add('highlight-active');
+
+                // Collect all related IDs (parts and occurrences) for this quote
+                const allRelatedIds = collectAllRelatedHighlightIds(highlightId);
+
+                // Activate all related highlights
+                allRelatedIds.forEach(id => {
+                    const element = document.getElementById(id);
+                    if (element && id !== highlightId) {
+                        element.classList.add('highlight-active');
+                    }
+                });
+
+                // Set up navigation if there are multiple occurrences
+                if (allRelatedIds.length > 1) {
+                    activeMultiPartQuote = {
+                        baseId: highlightId,
+                        partIds: allRelatedIds,
+                        currentIndex: 0
+                    };
+                    updateQuoteNav();
+                } else {
+                    // Single occurrence - hide navigation
+                    activeMultiPartQuote = null;
+                    hideQuoteNav();
+                }
+
+                // Smooth scroll to the highlight
+                highlightElement.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'center',
+                    inline: 'nearest'
+                });
+            } else {
+                console.warn(`No highlight found for ${highlightId}`);
+                activeMultiPartQuote = null;
+                hideQuoteNav();
+            }
+        }
+
+        // Navigate to previous quote part
+        function prevQuotePart() {
+            if (!activeMultiPartQuote || activeMultiPartQuote.currentIndex <= 0) return;
+
+            activeMultiPartQuote.currentIndex--;
+            scrollToQuotePart(activeMultiPartQuote.currentIndex);
+            updateQuoteNav();
+        }
+
+        // Navigate to next quote part
+        function nextQuotePart() {
+            if (!activeMultiPartQuote || activeMultiPartQuote.currentIndex >= activeMultiPartQuote.partIds.length - 1) return;
+
+            activeMultiPartQuote.currentIndex++;
+            scrollToQuotePart(activeMultiPartQuote.currentIndex);
+            updateQuoteNav();
+        }
+
+        // Scroll to a specific quote part by index
+        function scrollToQuotePart(index) {
+            if (!activeMultiPartQuote) return;
+
+            const partId = activeMultiPartQuote.partIds[index];
+            const partElement = document.getElementById(partId);
+
+            if (partElement) {
+                partElement.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'center',
+                    inline: 'nearest'
+                });
+            }
+        }
+
+        // Update the quote navigation UI
+        function updateQuoteNav() {
+            if (!activeMultiPartQuote) {
+                hideQuoteNav();
+                return;
+            }
+
+            const nav = document.getElementById('quote-nav');
+            const info = document.getElementById('quote-nav-info');
+            const prevBtn = document.getElementById('quote-nav-prev');
+            const nextBtn = document.getElementById('quote-nav-next');
+
+            nav.classList.add('visible');
+            info.textContent = `${activeMultiPartQuote.currentIndex + 1} / ${activeMultiPartQuote.partIds.length}`;
+
+            prevBtn.disabled = activeMultiPartQuote.currentIndex <= 0;
+            nextBtn.disabled = activeMultiPartQuote.currentIndex >= activeMultiPartQuote.partIds.length - 1;
+        }
+
+        // Hide the quote navigation
+        function hideQuoteNav() {
+            document.getElementById('quote-nav').classList.remove('visible');
+        }
+
+        // Close quote navigation and clear state
+        function closeQuoteNav() {
+            activeMultiPartQuote = null;
+            hideQuoteNav();
+            clearHighlights();
+        }
+
+        // Clear all highlights (can be called when clicking elsewhere)
+        function clearHighlights() {
+            document.querySelectorAll('.highlight.highlight-active').forEach(el => {
+                el.classList.remove('highlight-active');
+            });
+            activeMultiPartQuote = null;
+            hideQuoteNav();
+        }
+
+        // Highlight quotes in note text
+        function highlightNoteText(noteText, encounter, gantt) {
+            // First escape HTML and process XML tags
+            let processedText = processSectionHeaders(escapeHtml(noteText));
+
+            // Highlight reason quotes
+            if (encounter.reason_details && encounter.reason_details.length > 0) {
+                encounter.reason_details.forEach((reasonDetail, index) => {
+                    if (reasonDetail.relevant_quotes && reasonDetail.relevant_quotes.trim()) {
+                        const quote = reasonDetail.relevant_quotes.trim();
+                        const reasonId = `reason-${encounter.encounter_id}_${index}`;
+                        const reasonText = reasonDetail.reason;
+
+                        let result = tryHighlightMatch(processedText, quote, 'medium', reasonText, reasonId);
+                        if (result) {
+                            processedText = result;
+                        }
+                    }
+                });
+            }
+
+            // Highlight gantt event quotes
+            if (gantt && gantt.events && gantt.events.length > 0) {
+                gantt.events.forEach((event, index) => {
+                    if (event.relevant_quotes && event.relevant_quotes.trim()) {
+                        const quote = event.relevant_quotes.trim();
+                        const eventId = `event-${encounter.encounter_id}_${index}`;
+                        const eventLabel = event.label || event.description || 'Event';
+
+                        let result = tryHighlightMatch(processedText, quote, 'low', eventLabel, eventId);
+                        if (result) {
+                            processedText = result;
+                        }
+                    }
+                });
+            }
+
+            return processedText;
+        }
+
+        function tryHighlightMatch(text, quote, confidence, tooltip, highlightId) {
+            // Check if quote contains "..." separator for multi-section quotes
+            if (quote.includes('...')) {
+                return tryMultiSectionHighlight(text, quote, confidence, tooltip, highlightId);
+            }
+
+            return trySingleHighlight(text, quote, confidence, tooltip, highlightId);
+        }
+
+        function tryMultiSectionHighlight(text, quote, confidence, tooltip, highlightId) {
+            // Split by "..." and highlight each section separately
+            const sections = quote.split('...').map(s => s.trim()).filter(s => s.length > 0);
+
+            if (sections.length <= 1) {
+                // No valid split, fall back to single highlight
+                return trySingleHighlight(text, quote, confidence, tooltip, highlightId);
+            }
+
+            let result = text;
+            let anyMatched = false;
+
+            sections.forEach((section, index) => {
+                // First section gets the main ID (for scrolling), others get suffixed IDs
+                const sectionId = index === 0 ? highlightId : `${highlightId}-part${index}`;
+                const highlighted = trySingleHighlight(result, section, confidence, tooltip, sectionId);
+
+                if (highlighted) {
+                    result = highlighted;
+                    anyMatched = true;
+                }
+            });
+
+            return anyMatched ? result : null;
+        }
+
+        function trySingleHighlight(text, quote, confidence, tooltip, highlightId) {
+            const escapedQuote = escapeHtml(quote);
+            const titleAttr = `title="Supporting evidence for: ${escapeHtml(tooltip)}"`;
+            const clickHandler = `onclick="event.stopPropagation()"`;
+
+            // Helper for case-insensitive replace with unique IDs for each occurrence
+            function caseInsensitiveReplace(text, searchStr, baseHighlightId, titleAttr, clickHandler) {
+                const escapedSearch = searchStr.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                const regex = new RegExp(`(${escapedSearch})`, 'gi');
+
+                if (!regex.test(text)) {
+                    return null;
+                }
+
+                // Reset regex lastIndex after test
+                regex.lastIndex = 0;
+
+                // Use replace with callback to generate unique IDs for each match
+                let occurrenceIndex = 0;
+                const result = text.replace(regex, (match, capturedGroup) => {
+                    const uniqueId = occurrenceIndex === 0 ? baseHighlightId : `${baseHighlightId}-occur${occurrenceIndex}`;
+                    occurrenceIndex++;
+                    return `<span class="highlight" id="${uniqueId}" ${titleAttr} ${clickHandler}>${capturedGroup}</span>`;
+                });
+
+                return result;
+            }
+
+            // Try exact match first (case-insensitive)
+            let result = caseInsensitiveReplace(text, escapedQuote, highlightId, titleAttr, clickHandler);
+            if (result) return result;
+
+            // Try fuzzy matching - split into sentences (case-insensitive)
+            const sentences = quote.split(/[.!?]+/).filter(s => s.trim().length > 10);
+
+            for (const sentence of sentences) {
+                const trimmedSentence = sentence.trim();
+                const escapedSentence = escapeHtml(trimmedSentence);
+
+                result = caseInsensitiveReplace(text, escapedSentence, highlightId, titleAttr, clickHandler);
+                if (result) return result;
+            }
+
+            // Try partial word matching (case-insensitive)
+            const words = quote.split(/\s+/).filter(w => w.length > 3);
+            if (words.length >= 5) {
+                const patternWords = words.slice(0, Math.min(8, words.length)).map(w => escapeHtml(w));
+                const pattern = patternWords.join('\\s+');
+
+                try {
+                    const regex = new RegExp(`(${pattern})`, 'gi');
+                    if (regex.test(text)) {
+                        regex.lastIndex = 0;
+                        // Use the same unique ID generation approach for word patterns
+                        let occurrenceIndex = 0;
+                        return text.replace(regex, (match, capturedGroup) => {
+                            const uniqueId = occurrenceIndex === 0 ? highlightId : `${highlightId}-occur${occurrenceIndex}`;
+                            occurrenceIndex++;
+                            return `<span class="highlight" id="${uniqueId}" ${titleAttr} ${clickHandler}>${capturedGroup}</span>`;
+                        });
+                    }
+                } catch (e) {
+                    console.warn('Regex error in fuzzy matching:', e);
+                }
+            }
+
+            return null;
+        }
+
+        function processSectionHeaders(text) {
+            let result = text;
+
+            // Process note headers in the format from assemble_readmission_notes.py:
+            // [<Day of Week> <YYYY-MM-DD> <HH:MM> <Note Type Label>]
+            // Examples:
+            //   [Monday 2024-01-15 14:30 Discharge Summary - Index Admission]
+            //   [Wednesday 2024-01-17 08:45 H&P - Readmission]
+            const noteHeaderPattern = /(\[)(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)\s+(\d{4}-\d{2}-\d{2})\s+(\d{2}:\d{2})\s+([^\]]+)(\])/gi;
+            result = result.replace(noteHeaderPattern, function(match, openBracket, dayOfWeek, date, time, noteType, closeBracket) {
+                const trimmedNoteType = noteType.trim();
+                const displayLabel = `${dayOfWeek} ${date} ${time} - ${trimmedNoteType}`;
+                return `<span class="section-header" data-section="${displayLabel}" data-header-type="note_header" data-date="${date}" data-time="${time}" data-note-type="${trimmedNoteType}">${match}</span>`;
+            });
+
+            // Process bracket-style headers: [...] (only if starts with day of week)
+            // Used for exp_los study format
+            const daysOfWeek = /^(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)/i;
+            result = result.replace(/(\[)([^\[\]]+)(\])/g, function(match, open, content, close) {
+                const trimmedContent = content.trim();
+
+                // Skip empty or whitespace-only content
+                if (!trimmedContent) {
+                    return match;
+                }
+
+                // Only process if starts with a day of the week
+                if (!daysOfWeek.test(trimmedContent)) {
+                    return match;
+                }
+
+                // Skip headers containing "CONTINUED"
+                if (trimmedContent.toUpperCase().includes('CONTINUED')) {
+                    return match;
+                }
+
+                // Only process if content is 40 characters or less
+                if (trimmedContent.length > 40) {
+                    return match;
+                }
+
+                return `<span class="section-header" data-section="${trimmedContent}" data-header-type="weekday">${match}</span>`;
+            });
+
+            // Process H&P notes: XX:XX - NOTE: H&P (with leading spaces)
+            // Capture H&P patterns including leading spaces for indentation
+            const hpPattern = /(\s+\d{1,2}:\d{2}\s*[-–—]\s*NOTE:\s*H(?:&|&amp;)P)/gi;
+            result = result.replace(hpPattern, function(match) {
+                // For H&P notes, preserve the full match (including leading spaces) for indentation
+                const preservedContent = match; // Keep original spacing
+                console.log('Found H&P pattern:', preservedContent); // Debug log
+                return `<span class="section-header" data-section="${preservedContent}" data-header-type="hp">${match}</span>`;
+            });
+
+            // Process Discharge Summary notes: XX:XX - NOTE: Discharge Summary (with leading spaces)
+            const dischargePattern = /(\s+\d{1,2}:\d{2}\s*[-–—]\s*NOTE:\s*Discharge Summary)/gi;
+            result = result.replace(dischargePattern, function(match) {
+                const preservedContent = match;
+                return `<span class="section-header" data-section="${preservedContent}" data-header-type="discharge_summary">${match}</span>`;
+            });
+
+            // Process Progress Note: XX:XX - NOTE: Progress Note (with leading spaces)
+            const progressPattern = /(\s+\d{1,2}:\d{2}\s*[-–—]\s*NOTE:\s*Progress Note)/gi;
+            result = result.replace(progressPattern, function(match) {
+                const preservedContent = match;
+                return `<span class="section-header" data-section="${preservedContent}" data-header-type="progress_note">${match}</span>`;
+            });
+
+            return result;
+        }
+
+        // Get filtered section headers - ordered by document position
+        function getFilteredSectionHeaders() {
+            const noteContent = document.getElementById('note-content');
+            if (!noteContent) return [];
+
+            // Get all section headers regardless of type
+            const allHeaders = noteContent.querySelectorAll('.section-header');
+
+            // Filter to only include dates (weekday) and note types
+            const allowedTypes = [
+                'note_header',       // Note headers from assemble_readmission_notes.py [Day YYYY-MM-DD Note Type]
+                'weekday',           // Date headers like [Monday, January 1, 2024] (exp_los study)
+                'hp',                // H&P note headers (exp_los study)
+                'discharge_summary', // Discharge Summary note headers (exp_los study)
+                'progress_note',     // Progress Note headers (exp_los study)
+            ];
+            const filteredHeaders = Array.from(allHeaders).filter(header => {
+                const headerType = header.dataset.headerType;
+                return allowedTypes.includes(headerType);
+            });
+
+            // Convert to array and sort by document order (natural DOM order)
+            const sortedHeaders = filteredHeaders.sort((a, b) => {
+                // Compare position in document using compareDocumentPosition
+                const position = a.compareDocumentPosition(b);
+                if (position & Node.DOCUMENT_POSITION_FOLLOWING) {
+                    return -1; // a comes before b
+                } else if (position & Node.DOCUMENT_POSITION_PRECEDING) {
+                    return 1;  // a comes after b
+                }
+                return 0; // same position
+            });
+
+            return sortedHeaders;
+        }
+
+        function populateSectionDropdown() {
+            const select = document.getElementById('note-section-select');
+            if (!select) return;
+
+            // Clear existing options
+            select.innerHTML = '<option value="">Top</option>';
+
+            const sectionHeaders = getFilteredSectionHeaders();
+            sectionHeaders.forEach((tag, index) => {
+                const section = tag.dataset.section;
+                const option = document.createElement('option');
+                option.value = index.toString();
+                // Convert leading spaces to non-breaking spaces to preserve indentation in dropdown
+                const leadingSpaces = section.match(/^\s*/)[0];
+                const restOfText = section.substring(leadingSpaces.length);
+                const nbspSpaces = leadingSpaces.replace(/ /g, '\u00A0');
+                option.textContent = nbspSpaces + restOfText;
+                select.appendChild(option);
+            });
+        }
+
+        function updateNoteSectionHeader() {
+            const noteContent = document.getElementById('note-content');
+            const select = document.getElementById('note-section-select');
+            if (!noteContent || !select) return;
+
+            const sectionHeaders = getFilteredSectionHeaders();
+            if (sectionHeaders.length === 0) {
+                select.value = '';
+                return;
+            }
+
+            const containerRect = noteContent.getBoundingClientRect();
+            let currentIndex = '';
+
+            // Find the last header that's above or at the top of the visible area
+            sectionHeaders.forEach((tag, index) => {
+                const tagRect = tag.getBoundingClientRect();
+                // If the tag is above or at the top of the container viewport
+                if (tagRect.top <= containerRect.top + 50) {
+                    currentIndex = index.toString();
+                }
+            });
+
+            select.value = currentIndex;
+        }
+
+        function jumpToSection(indexStr) {
+            const noteContent = document.getElementById('note-content');
+            if (!noteContent) return;
+
+            if (indexStr === '') {
+                // "Top" selected - scroll to top
+                noteContent.scrollTop = 0;
+                return;
+            }
+
+            const sectionHeaders = getFilteredSectionHeaders();
+            const index = parseInt(indexStr, 10);
+
+            if (index >= 0 && index < sectionHeaders.length) {
+                sectionHeaders[index].scrollIntoView({ behavior: 'instant', block: 'start' });
+            }
+        }
+
+        function getValidationCount(encounterId) {
+            // Find encounter data
+            const encounter = encounters.find(e => e.encounter_id === encounterId) ||
+                            (currentEncounter?.encounter.encounter_id === encounterId ? currentEncounter.encounter : null);
+
+            if (!encounter || encounter.has_reasons_mentioned !== 'True') {
+                return { completed: 0, total: 0 };
+            }
+
+            const totalReasons = encounter.reason_details ? encounter.reason_details.length : 0;
+            const validation = validationResults.get(encounterId);
+
+            if (!validation) {
+                return { completed: 0, total: totalReasons };
+            }
+
+            // Count how many reasons have been validated (have a score)
+            const completedReasons = Object.keys(validation).filter(key => {
+                return key !== 'gantt_comment' && validation[key].score !== undefined;
+            }).length;
+
+            return { completed: completedReasons, total: totalReasons };
+        }
+
+        function setupEventListeners() {
+            // Pagination
+            document.getElementById('prev-page').addEventListener('click', () => {
+                if (currentPage > 0) {
+                    currentPage--;
+                    loadEncounters();
+                }
+            });
+
+            document.getElementById('next-page').addEventListener('click', () => {
+                currentPage++;
+                loadEncounters();
+            });
+
+            // Gantt comment auto-save
+            document.getElementById('gantt-comment').addEventListener('input', function() {
+                if (currentEncounter) {
+                    updateGanttComment(currentEncounter.encounter.encounter_id, this.value);
+                }
+            });
+
+            // Update note section header on scroll
+            document.getElementById('note-content').addEventListener('scroll', updateNoteSectionHeader);
+        }
+
+        async function loadEncounters() {
+            // Load encounters from local allEncounters array (populated by retrieveEncounters)
+            if (allEncounters.length === 0) {
+                showWaitingForReviewer();
+                return;
+            }
+
+            const offset = currentPage * pageSize;
+            encounters = allEncounters.slice(offset, offset + pageSize);
+
+            renderEncounterList(encounters);
+            updatePagination({
+                has_more: offset + pageSize < allEncounters.length
+            });
+            updateEncounterCount(allEncounters.length);
+        }
+
+        function renderEncounterList(encounters) {
+            const listContainer = document.getElementById('encounter-list');
+
+            if (encounters.length === 0) {
+                listContainer.innerHTML = '<div class="loading">No encounters found</div>';
+                return;
+            }
+
+            const html = encounters.map(encounter => {
+                const hasReasons = encounter.has_reasons_mentioned === 'True';
+                const status = getValidationCount(encounter.encounter_id);
+                const isCompleted = status.total > 0 && status.completed === status.total;
+                const yValue = encounter.Y != null ? `${encounter.Y} days` : '';
+
+                return `
+                    <div class="encounter-item ${!hasReasons ? 'no-reasons' : ''} ${isCompleted ? 'completed' : ''}"
+                         data-encounter-id="${encounter.encounter_id}"
+                         onclick="selectEncounter('${encounter.encounter_id}')">
+                        <div class="encounter-id">${encounter.encounter_id}${yValue ? ` <span class="y-value">(${yValue})</span>` : ''}</div>
+                        <div class="encounter-meta">
+                            ${hasReasons ? `${status.completed}/${status.total} validated` : 'Extraction failed'}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            listContainer.innerHTML = html;
+        }
+
+        function updatePagination(data) {
+            const prevBtn = document.getElementById('prev-page');
+            const nextBtn = document.getElementById('next-page');
+            const pageInfo = document.getElementById('page-info');
+
+            prevBtn.disabled = currentPage === 0;
+            nextBtn.disabled = !data.has_more;
+
+            pageInfo.textContent = `Page ${currentPage + 1}`;
+        }
+
+        function updateEncounterCount(total) {
+            document.getElementById('encounter-count').textContent = total;
+        }
+
+        async function selectEncounter(encounterId) {
+            try {
+                // Update visual selection
+                document.querySelectorAll('.encounter-item').forEach(item => {
+                    item.classList.remove('selected');
+                });
+                const selectedItem = document.querySelector(`[data-encounter-id="${encounterId}"]`);
+                if (selectedItem) {
+                    selectedItem.classList.add('selected');
+                }
+
+                // Update currentEncounterIndex to match selected encounter
+                const newIndex = allEncounters.findIndex(e => e.encounter_id === encounterId);
+                if (newIndex !== -1) {
+                    currentEncounterIndex = newIndex;
+                    updateNextButton();
+                }
+
+                // Load encounter details (from embedded data or API)
+                let data;
+                if (isEmbeddedMode) {
+                    data = EMBEDDED_DATA.encounter_details[encounterId];
+                } else {
+                    const response = await fetch(`/api/encounters/${encounterId}`);
+                    data = await response.json();
+                }
+
+                currentEncounter = data;
+                renderEncounterDetails(data);
+
+            } catch (error) {
+                console.error('Error loading encounter details:', error);
+                showError('Failed to load encounter details');
+            }
+        }
+
+        function renderEncounterDetails(data) {
+            const encounter = data.encounter;
+
+            // Update gantt title with Y value
+            const ganttTitle = document.getElementById('gantt-title');
+            if (encounter.Y != null) {
+                ganttTitle.textContent = `Patient Journey Timeline (${encounter.Y} days)`;
+            } else {
+                ganttTitle.textContent = 'Patient Journey Timeline';
+            }
+
+            // Render clinical note with highlighting for quotes
+            renderClinicalNote(data.note, encounter, data.gantt);
+
+            // Render gantt chart
+            renderGanttChart(data.gantt, encounter.encounter_id);
+
+            // Render reasons
+            renderReasons(encounter, {});
+
+            // Load gantt comment from validation results
+            const encounterValidation = validationResults.get(encounter.encounter_id) || {};
+            document.getElementById('gantt-comment').value = encounterValidation.gantt_comment || '';
+        }
+
+        function renderClinicalNote(note, encounter, gantt) {
+            const container = document.getElementById('note-content');
+            const select = document.getElementById('note-section-select');
+
+            if (!note || !note.note_text) {
+                container.innerHTML = '<div class="loading">No clinical note available</div>';
+                select.innerHTML = '<option value="">Top</option>';
+                return;
+            }
+
+            // Process note text with highlighting for quotes
+            const noteHtml = highlightNoteText(note.note_text, encounter, gantt);
+            container.innerHTML = noteHtml;
+
+            // Reset scroll, populate dropdown, and update selection
+            container.scrollTop = 0;
+            populateSectionDropdown();
+            updateNoteSectionHeader();
+        }
+
+        function renderGanttChart(gantt, encounterId) {
+            const container = document.getElementById('gantt-timeline');
+
+            if (!gantt || !gantt.events || gantt.events.length === 0) {
+                container.innerHTML = '<div class="loading">No timeline data available</div>';
+                return;
+            }
+
+            const events = gantt.events;
+            const timeRange = calculateTimeRange(events);
+
+            // Generate Gantt visualization
+            const readmissionLine = gantt.readmission_summary
+                ? `<div><strong style="color: #e74c3c;">Readmission:</strong> ${gantt.readmission_summary}</div>`
+                : '';
+            let ganttHTML = `
+                <div style="padding: 1rem; background: white;">
+                    <div style="margin-bottom: 1rem;">
+                        <div style="margin-bottom: 0.5rem;"><strong style="color: #3498db;">Index Admission:</strong> ${gantt.index_admission_summary || 'N/A'}</div>
+                        ${readmissionLine}
+                    </div>
+                    <div style="position: relative; padding: 1rem 0;">
+            `;
+
+            // Add time axis
+            ganttHTML += generateTimeAxis(timeRange);
+
+            // Add event bars
+            events.forEach((event, index) => {
+                const eventBar = generateEventBar(event, index, timeRange, encounterId);
+                ganttHTML += eventBar;
+            });
+
+            ganttHTML += `
+                    </div>
+                    <div class="event-details-container" style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #eee;">
+                        <h5 style="margin-bottom: 0.5rem;">Event Details:</h5>
+                        ${events.map((event, index) => {
+                            const hasQuote = event.relevant_quotes && event.relevant_quotes.trim();
+                            const clickHandler = hasQuote ? `onclick="scrollToHighlight('event-${encounterId}_${index}')"` : '';
+                            const clickableClass = hasQuote ? 'clickable-quote' : '';
+                            const cursorStyle = hasQuote ? 'cursor: pointer;' : '';
+                            const eventColor = getEventColor(index);
+                            const eventColorLight = getEventColorLight(index);
+
+                            return `
+                            <div class="event-detail-box ${clickableClass}" data-event-index="${index}" ${clickHandler} style="margin: 0.5rem 0; padding: 0.5rem; background: ${eventColorLight}; border-left: 4px solid ${eventColor}; border-radius: 0 4px 4px 0; ${cursorStyle}">
+                                <strong>${escapeHtml(event.label || event.description || 'Event')}</strong>
+                                ${event.category ? `<span style="margin-left: 0.5rem; color: #666; font-size: 0.85em;">(${escapeHtml(event.category)})</span>` : ''}
+                                <br>
+                                <small style="color: #888;">${formatEventTime(event.start_time)} → ${formatEventTime(event.end_time)}</small>
+                                ${event.description && event.description !== event.label ? `<br><small style="color: #666;">${escapeHtml(event.description)}</small>` : ''}
+                                ${hasQuote ? `<br><em style="color: #555; font-size: 0.9em;">"${escapeHtml(event.relevant_quotes)}"</em>` : ''}
+                            </div>
+                        `}).join('')}
+                    </div>
+                </div>
+            `;
+
+            container.innerHTML = ganttHTML;
+
+            // Set up hover listeners for gantt bars
+            setupGanttBarHoverListeners();
+        }
+
+        function setupGanttBarHoverListeners() {
+            const ganttBars = document.querySelectorAll('.gantt-bar');
+            const ganttLabels = document.querySelectorAll('.gantt-label');
+            const detailBoxes = document.querySelectorAll('.event-detail-box');
+
+            const addHoverListeners = (element) => {
+                element.addEventListener('mouseenter', () => {
+                    const eventIndex = element.dataset.eventIndex;
+                    detailBoxes.forEach(box => {
+                        if (box.dataset.eventIndex === eventIndex) {
+                            box.style.opacity = '1';
+                        } else {
+                            box.style.opacity = '0.3';
+                        }
+                    });
+                });
+
+                element.addEventListener('mouseleave', () => {
+                    detailBoxes.forEach(box => {
+                        box.style.opacity = '1';
+                    });
+                });
+            };
+
+            ganttBars.forEach(addHoverListeners);
+            ganttLabels.forEach(addHoverListeners);
+        }
+
+        function calculateTimeRange(events) {
+            const times = events.flatMap(event => [event.start_time, event.end_time]).filter(t => t);
+            if (times.length === 0) {
+                const now = new Date();
+                return { startTime: now, endTime: new Date(now.getTime() + 86400000) };
+            }
+            const startTime = new Date(Math.min(...times.map(t => new Date(t))));
+            const endTime = new Date(Math.max(...times.map(t => new Date(t))));
+            // Add some padding if start and end are the same
+            if (endTime - startTime < 1000) {
+                endTime.setHours(endTime.getHours() + 1);
+            }
+            return { startTime, endTime };
+        }
+
+        function generateTimeAxis(timeRange) {
+            return `
+                <div style="height: 30px; position: relative; border-bottom: 2px solid #ddd; margin-bottom: 1rem;">
+                    <div style="position: absolute; left: 0; bottom: 5px; font-size: 0.75rem; color: #666;">
+                        ${timeRange.startTime.toLocaleDateString()} ${timeRange.startTime.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                    </div>
+                    <div style="position: absolute; right: 0; bottom: 5px; font-size: 0.75rem; color: #666;">
+                        ${timeRange.endTime.toLocaleDateString()} ${timeRange.endTime.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                    </div>
+                </div>
+            `;
+        }
+
+        function generateEventBar(event, index, timeRange, encounterId) {
+            const startTime = new Date(event.start_time);
+            const endTime = new Date(event.end_time);
+            const totalDuration = timeRange.endTime - timeRange.startTime;
+
+            let leftPercent = ((startTime - timeRange.startTime) / totalDuration) * 100;
+            let widthPercent = ((endTime - startTime) / totalDuration) * 100;
+
+            // Clamp values
+            leftPercent = Math.max(0, Math.min(100, leftPercent));
+            widthPercent = Math.max(2, Math.min(100 - leftPercent, widthPercent));
+
+            const color = getEventColor(index);
+            const hasQuote = event.relevant_quotes && event.relevant_quotes.trim();
+            const clickHandler = hasQuote ? `onclick="scrollToHighlight('event-${encounterId}_${index}')"` : '';
+            const cursorStyle = hasQuote ? 'cursor: pointer;' : '';
+
+            return `
+                <div style="position: relative; height: 25px; margin: 5px 0;">
+                    <div class="gantt-bar" data-event-index="${index}" ${clickHandler} style="
+                        position: absolute;
+                        left: ${leftPercent}%;
+                        width: ${widthPercent}%;
+                        height: 20px;
+                        background-color: ${color};
+                        border-radius: 3px;
+                        box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+                        ${cursorStyle}
+                    " title="${escapeHtml(event.label || event.description || 'Event')}"></div>
+                    <span class="gantt-label" data-event-index="${index}" ${clickHandler} style="
+                        position: absolute;
+                        left: ${leftPercent}%;
+                        padding-left: 4px;
+                        color: #333;
+                        white-space: nowrap;
+                        font-size: 0.75rem;
+                        line-height: 20px;
+                        ${cursorStyle}
+                    ">${escapeHtml(event.label || event.description || 'Event')}</span>
+                </div>
+            `;
+        }
+
+        function getEventColor(index) {
+            // Rotate through distinct colors by index (lighter shades for readability with dark text)
+            const colors = [
+                '#5dade2', '#ec7063', '#58d68d', '#f5b041',
+                '#bb8fce', '#48c9b0', '#f0b27a', '#85c1e9',
+                '#7dcea0', '#c39bd3', '#f7dc6f', '#76d7c4'
+            ];
+            return colors[index % colors.length];
+        }
+
+        function getEventColorLight(index) {
+            // Light background versions of the colors for detail cards
+            const colors = [
+                '#ebf5fb', '#fdedec', '#e9f7ef', '#fef5e7',
+                '#f5eef8', '#e8f8f5', '#fdf2e9', '#ebedef',
+                '#e9f7ef', '#f5eef8', '#fef9e7', '#e8f6f3'
+            ];
+            return colors[index % colors.length];
+        }
+
+        function formatEventTime(timeStr) {
+            if (!timeStr) return 'Unknown';
+            const date = new Date(timeStr);
+            if (isNaN(date)) return timeStr;
+            return `${date.toLocaleDateString()} ${date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`;
+        }
+
+        function renderReasons(encounter, validations) {
+            const container = document.getElementById('reasons-content');
+
+            if (encounter.has_reasons_mentioned !== 'True' || !encounter.reason_details || encounter.reason_details.length === 0) {
+                container.innerHTML = `
+                    <div style="padding: 1.5rem; color: #666; text-align: center;">
+                        <div style="font-size: 1.1rem; margin-bottom: 1rem;">No reasons extracted for this encounter.</div>
+                        <div style="font-size: 0.9rem; color: #888;">
+                            If you believe there are reasons the LLM missed, please use the
+                            <strong style="color: #27ae60;">feedback textbox</strong> below the Gantt chart
+                            to describe any missing factors that may have extended length of stay.
+                        </div>
+                    </div>
+                `;
+                document.getElementById('reasons-count').textContent = '0';
+                return;
+            }
+
+            document.getElementById('reasons-count').textContent = encounter.reason_details.length;
+
+            // Get validations from in-memory results
+            const encounterValidation = validationResults.get(encounter.encounter_id) || {};
+
+            const html = encounter.reason_details.map((reasonDetail, index) => {
+                const reasonId = `${encounter.encounter_id}_${index}`;
+                const highlightId = `reason-${reasonId}`;
+                const validation = encounterValidation[reasonId] || {};
+                const hasQuote = reasonDetail.relevant_quotes && reasonDetail.relevant_quotes.trim();
+                const llmConfidence = reasonDetail.confidence || 'N/A';
+
+                const clickHandler = hasQuote ? `onclick="scrollToHighlight('${highlightId}')"` : '';
+                const clickableClass = hasQuote ? 'clickable-quote' : '';
+
+                return `
+                    <div class="reason-item ${clickableClass}" data-reason-id="${reasonId}" ${clickHandler}>
+                        <div class="reason-text">${escapeHtml(reasonDetail.reason)}</div>
+
+                        <div class="llm-rating ${llmRatingsVisible ? 'visible' : ''}" onclick="event.stopPropagation()">
+                            <strong>LLM Confidence:</strong>
+                            <span class="llm-rating-badge">${escapeHtml(String(llmConfidence))}</span>
+                            ${reasonDetail.confidence_reason ? `
+                                <div class="confidence-reason" style="margin-top: 0.5rem; font-size: 0.9rem; color: #666;">
+                                    <strong>Confidence Reasoning:</strong> ${escapeHtml(reasonDetail.confidence_reason)}
+                                </div>
+                            ` : ''}
+                        </div>
+
+                        ${reasonDetail.explanation_support ? `
+                            <div class="topic-info">
+                                <strong>Supporting Evidence:</strong> ${escapeHtml(reasonDetail.explanation_support)}
+                            </div>
+                        ` : ''}
+
+                        ${reasonDetail.explanation_contrary ? `
+                            <div class="topic-info">
+                                <strong>Contrary Evidence:</strong> ${escapeHtml(reasonDetail.explanation_contrary)}
+                            </div>
+                        ` : ''}
+
+                        ${reasonDetail.process_improvement ? `
+                            <div class="topic-info">
+                                <strong>Example Process Improvement:</strong> ${escapeHtml(reasonDetail.process_improvement)}
+                            </div>
+                        ` : ''}
+
+                        ${hasQuote ? `
+                            <div class="topic-info">
+                                <strong>Quote:</strong> "${escapeHtml(reasonDetail.relevant_quotes)}"
+                            </div>
+                        ` : ''}
+			
+			<div class="topic-info"><strong>Rate this statement:</strong> "This contributing factor is a modifiable gap that if improved would {{ rating_statement_completion }}."</div>
+                        <div class="validation-controls" onclick="event.stopPropagation()">
+                            <button class="btn btn-score btn-score-1 ${validation.score === 1 ? 'active' : ''}"
+                                    onclick="validateReason('${reasonId}', 1)" title="Strongly Disagree">1 Str Disagree</button>
+                            <button class="btn btn-score btn-score-2 ${validation.score === 2 ? 'active' : ''}"
+                                    onclick="validateReason('${reasonId}', 2)" title="Disagree">2 Disagree</button>
+                            <button class="btn btn-score btn-score-3 ${validation.score === 3 ? 'active' : ''}"
+                                    onclick="validateReason('${reasonId}', 3)" title="Neutral">3 Neutral</button>
+                            <button class="btn btn-score btn-score-4 ${validation.score === 4 ? 'active' : ''}"
+                                    onclick="validateReason('${reasonId}', 4)" title="Agree">4 Agree</button>
+                            <button class="btn btn-score btn-score-5 ${validation.score === 5 ? 'active' : ''}"
+                                    onclick="validateReason('${reasonId}', 5)" title="Strongly Agree">5 Str Agree</button>
+                        </div>
+
+                        <textarea class="reviewer-notes" placeholder="Additional notes (optional)..."
+                                  onclick="event.stopPropagation()"
+                                  onchange="updateReasonNotes('${reasonId}', this.value)">${validation.notes || ''}</textarea>
+                    </div>
+                `;
+            }).join('');
+
+            container.innerHTML = html;
+        }
+
+        function validateReason(reasonId, score) {
+            const [encounterId] = reasonId.split('_');
+
+            // Get or create validation data for this encounter
+            let encounterValidation = validationResults.get(encounterId) || {};
+
+            // Update the reason validation
+            if (!encounterValidation[reasonId]) {
+                encounterValidation[reasonId] = {};
+            }
+            encounterValidation[reasonId].score = score;
+            encounterValidation[reasonId].timestamp = new Date().toISOString();
+
+            // Save back to results
+            validationResults.set(encounterId, encounterValidation);
+
+            // Update button states
+            const reasonItem = document.querySelector(`[data-reason-id="${reasonId}"]`);
+            const buttons = reasonItem.querySelectorAll('.validation-controls button');
+            buttons.forEach(btn => btn.classList.remove('active'));
+            buttons[score - 1].classList.add('active');  // score is 1-5, buttons array is 0-indexed
+
+
+            // Refresh encounter list to show updated validation counts
+            renderEncounterList(encounters);
+
+            console.log(`Updated validation for reason ${reasonId}: ${status ? 'accepted' : 'rejected'}`);
+        }
+
+        function updateReasonNotes(reasonId, notes) {
+            const [encounterId] = reasonId.split('_');
+
+            // Get or create validation data for this encounter
+            let encounterValidation = validationResults.get(encounterId) || {};
+
+            // Update the reason notes
+            if (!encounterValidation[reasonId]) {
+                encounterValidation[reasonId] = {};
+            }
+            encounterValidation[reasonId].notes = notes;
+            encounterValidation[reasonId].timestamp = new Date().toISOString();
+
+            // Save back to results
+            validationResults.set(encounterId, encounterValidation);
+
+
+            console.log(`Updated notes for reason ${reasonId}`);
+        }
+
+        function updateGanttComment(encounterId, comment) {
+            // Get or create validation data for this encounter
+            let encounterValidation = validationResults.get(encounterId) || {};
+            encounterValidation.gantt_comment = comment;
+
+            // Save back to results
+            validationResults.set(encounterId, encounterValidation);
+
+
+            console.log(`Updated Gantt comment for encounter ${encounterId}`);
+        }
+
+        // Toggle LLM ratings visibility
+        function toggleLLMRatings() {
+            llmRatingsVisible = !llmRatingsVisible;
+
+            // Update button state
+            const btn = document.getElementById('reveal-btn');
+            if (llmRatingsVisible) {
+                btn.classList.add('active');
+                btn.textContent = 'Hide LLM ratings';
+            } else {
+                btn.classList.remove('active');
+                btn.textContent = 'Reveal LLM ratings';
+            }
+
+            // Toggle visibility of all LLM rating elements
+            document.querySelectorAll('.llm-rating').forEach(el => {
+                if (llmRatingsVisible) {
+                    el.classList.add('visible');
+                } else {
+                    el.classList.remove('visible');
+                }
+            });
+        }
+
+        // Tab switching
+        function switchTab(tabName) {
+            // Update tab buttons
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelector(`[onclick="switchTab('${tabName}')"]`).classList.add('active');
+
+            // Update tab content
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            document.getElementById(`${tabName}-tab`).classList.add('active');
+
+            // Show/hide export panel based on tab
+            const exportPanel = document.querySelector('.export-panel');
+            if (tabName === 'calibration') {
+                exportPanel.style.display = 'none';
+                loadCalibrationData();
+            } else {
+                exportPanel.style.display = 'block';
+            }
+        }
+
+        async function exportValidations() {
+            try {
+                // Get current reviewer ID
+                const reviewerId = getCurrentReviewerId();
+                if (!reviewerId) {
+                    showError('Please enter your Reviewer ID before exporting.');
+                    if (!isEmbeddedMode) {
+                        document.getElementById('reviewer-id-input').focus();
+                    }
+                    return;
+                }
+
+                // Generate export data from in-memory validation results
+                const exportData = generateExportData(reviewerId);
+
+                if (exportData.length === 0) {
+                    showError('No validation results to export. Please validate some reasons first.');
+                    return;
+                }
+
+                // In embedded mode, download as CSV instead of posting to server
+                if (isEmbeddedMode) {
+                    downloadValidationsAsCSV(exportData);
+                    showSuccess(`Downloaded ${exportData.length} validation records as CSV.`);
+                    return;
+                }
+
+                // Submit to backend for Bayesian inference
+                await submitValidationsToBackend(exportData, reviewerId);
+
+                // Switch to calibration tab and refresh
+                switchTab('calibration');
+
+                showSuccess(`Exported ${exportData.length} validation records and triggered Bayesian inference.`);
+
+            } catch (error) {
+                console.error('Error exporting validations:', error);
+                showError('Failed to export validation results');
+            }
+        }
+
+        function downloadValidationsAsCSV(exportData) {
+            // Define CSV columns
+            const columns = [
+                'encounter_id', 'reason_id', 'reason_text', 'LLM_confidence',
+                'annotation', 'reviewer_notes', 'feedback_type', 'validation_timestamp', 'reviewer_id'
+            ];
+
+            // Build CSV content
+            const escapeCSV = (val) => {
+                if (val === null || val === undefined) return '';
+                const str = String(val);
+                if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+                    return '"' + str.replace(/"/g, '""') + '"';
+                }
+                return str;
+            };
+
+            const header = columns.join(',');
+            const rows = exportData.map(row =>
+                columns.map(col => escapeCSV(row[col])).join(',')
+            );
+            const csvContent = [header, ...rows].join('\n');
+
+            // Create download link with reviewer ID in filename if available
+            const reviewerId = (exportData.length > 0 && exportData[0].reviewer_id) ?
+                `_${exportData[0].reviewer_id}` : '';
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.setAttribute('href', url);
+            link.setAttribute('download', `validations_${PROMPT_ID}${reviewerId}_${new Date().toISOString().slice(0,10)}.csv`);
+            link.style.display = 'none';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+        }
+
+        function generateExportData(reviewerId = null) {
+            const exportData = [];
+
+            // Iterate through all validation results
+            validationResults.forEach((encounterValidation, encounterId) => {
+                // Get the encounter data
+                const encounter = encounters.find(e => e.encounter_id === encounterId) ||
+                                currentEncounter?.encounter;
+
+                if (!encounter) return;
+
+                // Process each validated reason
+                Object.keys(encounterValidation).forEach(reasonId => {
+                    // Skip gantt_comment key
+                    if (reasonId === 'gantt_comment') return;
+
+                    const validation = encounterValidation[reasonId];
+                    const reasonIndex = parseInt(reasonId.split('_')[1]);
+
+                    if (!encounter.reason_details || !encounter.reason_details[reasonIndex] || validation.score === undefined) return;
+
+                    const reasonDetail = encounter.reason_details[reasonIndex];
+
+                    const exportRecord = {
+                        encounter_id: encounterId,
+                        reason_id: reasonId,  // Send the reason_id to backend
+                        reason_text: reasonDetail.reason,
+                        LLM_confidence: parseInt(reasonDetail.confidence || 0),
+                        relevant_excerpt: reasonDetail.relevant_quotes || '',
+                        topic_name: 'N/A', // Will be populated by backend
+                        topic_probability: 'N/A',
+                        topic_terms: 'N/A',
+                        annotation: validation.score,  // 1-5 Likert scale
+                        reviewer_notes: validation.notes || '',
+                        validation_timestamp: validation.timestamp || new Date().toISOString(),
+                        note_type: '', // Will be populated by backend
+                        note_timestamp: '', // Will be populated by backend
+                        feedback_type: 'reason',
+                        reviewer_id: reviewerId || ''
+                    };
+
+                    exportData.push(exportRecord);
+                });
+
+                // Add Gantt chart feedback row if comment exists
+                if (encounterValidation.gantt_comment && encounterValidation.gantt_comment.trim()) {
+                    const ganttRecord = {
+                        encounter_id: encounterId,
+                        reason_text: 'N/A',
+                        LLM_confidence: 'N/A',
+                        relevant_excerpt: 'N/A',
+                        topic_name: 'N/A',
+                        topic_probability: 'N/A',
+                        topic_terms: 'N/A',
+                        annotation: 'N/A',
+                        reviewer_notes: encounterValidation.gantt_comment,
+                        validation_timestamp: new Date().toISOString(),
+                        note_type: '',
+                        note_timestamp: '',
+                        feedback_type: 'gantt',
+                        reviewer_id: reviewerId || ''
+                    };
+
+                    exportData.push(ganttRecord);
+                }
+            });
+
+            return exportData;
+        }
+
+        async function submitValidationsToBackend(exportData, reviewerId) {
+            // Submit validation data to backend for Bayesian inference
+            const response = await fetch('/api/submit_validations', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    validations: exportData,
+                    prompt_id: PROMPT_ID,
+                    reviewer_id: reviewerId
+                })
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || `Backend submission failed: ${response.status}`);
+            }
+
+            const result = await response.json();
+            console.log(`Submitted validations to backend for prompt_id=${PROMPT_ID}, reviewer_id=${reviewerId}:`, result);
+        }
+
+        async function loadCalibrationData() {
+            const container = document.getElementById('calibration-content');
+            const statsContainer = document.getElementById('calibration-stats');
+
+            // Show loading state
+            container.innerHTML = '<div class="loading">Generating calibration plot (this may take a moment for MCMC sampling)...</div>';
+            statsContainer.innerHTML = '';
+
+            try {
+                const response = await fetch('/api/calibration');
+                const data = await response.json();
+
+                // Display the plot from base64
+                container.innerHTML = `
+                    <img src="data:image/png;base64,${data.plot_base64}"
+                         alt="Calibration Curves"
+                         style="max-width: 100%; height: auto; border: 1px solid #ddd; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);"
+                    />
+                `;
+
+                if (data.status === 'success') {
+                    // Compute mean and std for expected scores at each level
+                    const expectedScores = data.expected_scores;
+                    const computeStats = (arr) => {
+                        const mean = arr.reduce((a, b) => a + b, 0) / arr.length;
+                        const std = Math.sqrt(arr.reduce((a, b) => a + (b - mean) ** 2, 0) / arr.length);
+                        return { mean, std };
+                    };
+
+                    // Detect which model type based on keys present
+                    const isNonparamProb = 'gt90' in expectedScores;
+                    const isLinear = '100' in expectedScores;
+                    const isMonotoneOrderedLogistic = 'bin0' in expectedScores;
+
+                    let statsHtml = `
+                        <div style="background: #f8f9fa; padding: 1rem; border-radius: 8px; margin-top: 1rem;">
+                            <h4 style="margin-bottom: 0.5rem;">Bayesian Calibration Summary</h4>
+                            <p><strong>Observations:</strong> ${data.n_observations} validated reasons</p>
+                            <p><strong>MCMC Samples:</strong> ${data.n_samples}</p>
+                    `;
+
+                    if (isNonparamProb) {
+                        // Piecewise constant model (nonparam_prob)
+                        const statsGt90 = computeStats(expectedScores['gt90']);
+                        const stats81_90 = computeStats(expectedScores['81_90']);
+                        const stats71_80 = computeStats(expectedScores['71_80']);
+                        const stats61_70 = computeStats(expectedScores['61_70']);
+                        const stats51_60 = computeStats(expectedScores['51_60']);
+                        const statsLe50 = computeStats(expectedScores['le50']);
+
+                        statsHtml += `
+                            <p><strong>E[Human|LLM>90]:</strong> ${statsGt90.mean.toFixed(2)} ± ${statsGt90.std.toFixed(2)}</p>
+                            <p><strong>E[Human|81≤LLM≤90]:</strong> ${stats81_90.mean.toFixed(2)} ± ${stats81_90.std.toFixed(2)}</p>
+                            <p><strong>E[Human|71≤LLM≤80]:</strong> ${stats71_80.mean.toFixed(2)} ± ${stats71_80.std.toFixed(2)}</p>
+                            <p><strong>E[Human|61≤LLM≤70]:</strong> ${stats61_70.mean.toFixed(2)} ± ${stats61_70.std.toFixed(2)}</p>
+                            <p><strong>E[Human|51≤LLM≤60]:</strong> ${stats51_60.mean.toFixed(2)} ± ${stats51_60.std.toFixed(2)}</p>
+                            <p><strong>E[Human|LLM≤50]:</strong> ${statsLe50.mean.toFixed(2)} ± ${statsLe50.std.toFixed(2)}</p>
+                        `;
+                    } else if (isLinear) {
+                        // Linear model
+                        const stats100 = computeStats(expectedScores['100']);
+                        const stats75 = computeStats(expectedScores['75']);
+                        const stats50 = computeStats(expectedScores['50']);
+                        const stats25 = computeStats(expectedScores['25']);
+                        const stats0 = computeStats(expectedScores['0']);
+
+                        statsHtml += `
+                            <p><strong>E[Human|LLM=100]:</strong> ${stats100.mean.toFixed(2)} ± ${stats100.std.toFixed(2)}</p>
+                            <p><strong>E[Human|LLM=75]:</strong> ${stats75.mean.toFixed(2)} ± ${stats75.std.toFixed(2)}</p>
+                            <p><strong>E[Human|LLM=50]:</strong> ${stats50.mean.toFixed(2)} ± ${stats50.std.toFixed(2)}</p>
+                            <p><strong>E[Human|LLM=25]:</strong> ${stats25.mean.toFixed(2)} ± ${stats25.std.toFixed(2)}</p>
+                            <p><strong>E[Human|LLM=0]:</strong> ${stats0.mean.toFixed(2)} ± ${stats0.std.toFixed(2)}</p>
+                        `;
+                    } else if (isMonotoneOrderedLogistic) {
+                        // Monotone ordered logistic model
+                        const statsBin0 = computeStats(expectedScores['bin0']);
+                        const statsBin1 = computeStats(expectedScores['bin1']);
+                        const statsBin2 = computeStats(expectedScores['bin2']);
+                        const statsBin3 = computeStats(expectedScores['bin3']);
+                        const statsBin4 = computeStats(expectedScores['bin4']);
+
+                        statsHtml += `
+                            <p><strong>E[Human|LLM≤50]:</strong> ${statsBin0.mean.toFixed(2)} ± ${statsBin0.std.toFixed(2)}</p>
+                            <p><strong>E[Human|51≤LLM≤60]:</strong> ${statsBin1.mean.toFixed(2)} ± ${statsBin1.std.toFixed(2)}</p>
+                            <p><strong>E[Human|61≤LLM≤70]:</strong> ${statsBin2.mean.toFixed(2)} ± ${statsBin2.std.toFixed(2)}</p>
+                            <p><strong>E[Human|71≤LLM≤80]:</strong> ${statsBin3.mean.toFixed(2)} ± ${statsBin3.std.toFixed(2)}</p>
+                            <p><strong>E[Human|LLM>80]:</strong> ${statsBin4.mean.toFixed(2)} ± ${statsBin4.std.toFixed(2)}</p>
+                        `;
+                    }
+
+                    // Add model-specific footer message
+                    if (isMonotoneOrderedLogistic) {
+                        statsHtml += `
+                            <p style="margin-top: 0.5rem; font-size: 0.9em; color: #666;">
+                                <em>Ordered logistic model: Human scores 1-5, Perfect calibration: LLM=0→Human=1, LLM=100→Human=5</em>
+                            </p>
+                        </div>
+                        `;
+                    } else {
+                        statsHtml += `
+                            <p><strong>σ (residual SD):</strong> ${data.summary.sigma_mean.toFixed(2)} ± ${data.summary.sigma_std.toFixed(2)}</p>
+                            <p style="margin-top: 0.5rem; font-size: 0.9em; color: #666;">
+                                <em>Perfect calibration: LLM=0→Human=1, LLM=100→Human=3</em>
+                            </p>
+                        </div>
+                        `;
+                    }
+
+                    statsContainer.innerHTML = statsHtml;
+                } else {
+                    statsContainer.innerHTML = `<div class="loading">${data.message || 'No calibration data available yet. Complete some validations and export first.'}</div>`;
+                }
+            } catch (error) {
+                console.error('Error loading calibration data:', error);
+                container.innerHTML = '<div class="error">Failed to load calibration data. Make sure you have submitted validations.</div>';
+            }
+        }
+
+        function refreshCalibration() {
+            loadCalibrationData();
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function showError(message) {
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'error';
+            errorDiv.textContent = message;
+            errorDiv.style.position = 'fixed';
+            errorDiv.style.top = '20px';
+            errorDiv.style.right = '20px';
+            errorDiv.style.zIndex = '1000';
+            document.body.appendChild(errorDiv);
+            setTimeout(() => errorDiv.remove(), 5000);
+        }
+
+        function showSuccess(message) {
+            const successDiv = document.createElement('div');
+            successDiv.className = 'success';
+            successDiv.textContent = message;
+            successDiv.style.position = 'fixed';
+            successDiv.style.top = '20px';
+            successDiv.style.right = '20px';
+            successDiv.style.zIndex = '1000';
+            document.body.appendChild(successDiv);
+            setTimeout(() => successDiv.remove(), 3000);
+        }
+    </script>
+</body>
+</html>

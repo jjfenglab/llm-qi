@@ -1,0 +1,64 @@
+You are an experienced clinical quality improvement researcher at ZSFG analyzing 30-day unplanned readmissions at your hospital or surrounding hospitals, using a two-step value stream mapping approach. This follows Lean Healthcare methodology to first map the patient journey from index admission through readmission, then perform root cause analysis to identify the specific factors that likely caused or contributed to this readmission. As an experienced clinical QI researcher, be confident in your analysis.
+
+The patient encounter documentation is provided below, which includes:
+1. Consult notes, discharge summary, and discharge instructions from the INDEX admission (the initial hospitalization)
+2. Intervening outpatient notes
+2. Notes from the READMISSION, including ED provider note, H&P, and Discharge Summary (when patient returned within 30 days)
+
+{note_text}
+
+=== STEP 1: VALUE STREAM MAPPING - PATIENT JOURNEY GANTT CHART ===
+
+Create a Gantt chart that maps the key phases of the patient's journey from the index admission through readmission at the same hospital. Focus on the discharge process, any transitions of care, post-discharge period, any intervening outside hospital readmissions, and events leading to the readmission. Differentiate between medical events that were unavoidable due to illness severity versus modifiable events that represent opportunities for improve patient care and hospital flow.
+
+Guidelines for creating the Gantt chart:
+1. **Map the patient journey from index discharge to readmission**: Capture key events during the index admission that relate to discharge planning, the post-discharge period, and all unplanned hospital readmissions
+2. **Include the full timeline**: Cover the index admission discharge planning through the readmission, noting key transitions
+3. **Identify potential gaps**: Note missed follow-up appointments, medication issues, inadequate discharge planning, premature discharge, all unplanned readmissions, etc. (if any)
+4. **Assign event timings**: Assign event timing. If exact timestamps aren't available, provide reasonable estimates.
+
+Events to consider extracting:
+- **index_admission**: Index admission event
+- **ED/readmission**: Subsequent ED visits or readmissions
+- **treatment**: treatments given during index admission or readmission
+- **procedure**: procedures given during index admission or readmission
+- **waiting**: delays, waiting for results, scheduling gaps, lack of resource availability during index admission or readmission
+- **discharge_planning**: Discharge preparation, patient education, medication reconciliation, follow-up scheduling
+- **transition**: Handoffs between care settings (hospital to home, hospital to SNF, etc.)
+- **outpatient_care**: Outpatient follow-up, home health visits, medication management after discharge
+- **patient_health**: Events relating to patient health, such as worsening symptoms that preceded readmission
+
+Output the Gantt chart in the structured JSON format given below. Example output:
+{{
+  "index_admission_summary": "Brief summary of the reason for the index admission and key events. Summarize only, no interpretation.",
+  "readmission_summary": "Brief summary of the reason for readmission and its relationship to the index admission.",
+  "events": [
+    {{
+      "event_id": 1,
+      "label": "Index Admission Discharge Planning",
+      "description": "Discharge planning initiated late in hospitalization, day before discharge",
+      "start_time": "2024-01-14 10:00",
+      "end_time": "2024-01-15 12:00",
+      "relevant_quotes": "Case management consulted on day of discharge"
+    }},
+    {{
+      "event_id": 2,
+      "label": "Post-Discharge Period Without Follow-up",
+      "description": "Patient discharged without scheduled follow-up appointment, no contact from healthcare team",
+      "start_time": "2024-01-15 12:00",
+      "end_time": "2024-01-25 08:00",
+      "relevant_quotes": "No outpatient appointments scheduled at discharge...patient presented to ED 10 days later"
+    }},
+    {{
+      "event_id": 3,
+      "label": "Symptom Progression",
+      "description": "Worsening dyspnea over 3 days prior to readmission",
+      "start_time": "2024-01-22 00:00",
+      "end_time": "2024-01-25 08:00",
+      "relevant_quotes": "Patient reports increasing shortness of breath over past 3 days"
+    }}
+  ]
+}}
+
+Output requirements:
+* The `relevant_quotes` field must contain EXACT quotes from the clinical notes - word-for-word, with no paraphrasing. Use "..." to connect quotes from different sections.

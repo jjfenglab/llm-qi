@@ -1,0 +1,145 @@
+You are an experienced clinical quality improvement researcher at ZSFG analyzing 30-day unplanned readmissions at your hospital, using a two-step value stream mapping approach. This follows Lean Healthcare methodology to first map the patient journey from index admission through readmission, then identify contributing factors that are modifiable gaps and if improved would likely have prevented the readmission. As an experienced clinical QI researcher, be confident in making suggestions -- leverage your expertise!
+
+The patient encounter documentation is provided below, which includes:
+1. The discharge summary from the INDEX admission (the initial hospitalization)
+2. Notes from the READMISSION, including ED provider note, H&P, and Discharge Summary (when patient returned within 30 days)
+
+{note_text}
+
+=== STEP 1: VALUE STREAM MAPPING - PATIENT JOURNEY GANTT CHART ===
+
+First, create a Gantt chart that maps the key phases of the patient's journey from the index admission through the readmission. Focus on the discharge process, any transitions of care, post-discharge period, and events leading to the readmission. Differentiate between medical events that were unavoidable due to illness severity versus modifiable events that represent opportunities for improve patient care and hospital flow.
+
+Guidelines for creating the Gantt chart:
+1. **Map the patient journey from index discharge to readmission**: Capture key events during the index admission that relate to discharge planning, the post-discharge period, and the readmission
+2. **Include the full timeline**: Cover the index admission discharge planning through the readmission, noting key transitions
+3. **Identify potential gaps**: Note missed follow-up appointments, medication issues, inadequate discharge planning, premature discharge, etc. (if any)
+4. **Assign event timings**: Assign event timing. If exact timestamps aren't available, provide reasonable estimates and mark them as approximate.
+
+Event categories to consider, though you can introduce others:
+- **index_admission**: Index admission event
+- **readmission**: Readmission event
+- **treatment**: treatments given during index admission or readmission
+- **procedure**: procedures given during index admission or readmission
+- **waiting**: delays, waiting for results, scheduling gaps, lack of resource availability during index admission or readmission
+- **discharge_planning**: Discharge preparation, patient education, medication reconciliation, follow-up scheduling
+- **transition**: Handoffs between care settings (hospital to home, hospital to SNF, etc.)
+- **outpatient_care**: Outpatient follow-up, home health visits, medication management after discharge
+- **patient_health**: Events relating to patient health, such as worsening symptoms that preceded readmission
+
+=== STEP 2: FACTORS ANALYSIS ===
+
+Go through the Gantt chart you created to identify contributing factors that are modifiable gaps and, if improved, would likely have prevented this readmission.
+
+Instructions:
+1. Going through the Gantt chart, identify opportunities where there was inadequate discharge planning, suboptimal transitions of care, gaps in post-discharge follow-up, or missed opportunities to prevent the readmission. Only list contributors that are actionable, such as discharge planning quality, follow-up care coordination, patient education, medication management; avoid listing a patient's baseline illness severity as a factor. Prioritize listing factors that very likely contributed to the readmission. List at most 5 factors.
+2. Explanation Support: Provide detailed step-by-step reasoning for why this represents a contributing factor that led to the readmission, referencing both the Gantt chart timeline and clinical notes when applicable.
+3. Explanation Contrary: Provide explanations for why this factor may not have been preventable or may not have changed the outcome.
+4. Relevant Quotes: For each identified contributing factor, provide EXACT quotes (word-for-word) from the notes. Quotes should support all components of your explanation.
+5. Process Improvement: For each factor, describe what specific process change could be implemented, which may ultimately prevent similar readmissions. Focus on changes within the hospital's and outpatient system's control.
+6. Confidence: Assign a confidence probability (0-100) for the following statement: "This contributing factor is a modifiable gap that if improved would likely have prevented this readmission." Use values rounded to the closest decile (e.g., 90). Generally only list factors with at least 50 confidence, prioritize factors with higher confidence. Provide confidence ratings that are aligned with prior ratings from ZSFG healthcare providers, by looking at these examples:
+   - Example 1: Inadequate discharge medication reconciliation
+       - Supporting Evidence: Patient was discharged on a new diuretic regimen but readmitted 10 days later with volume overload. Discharge summary shows furosemide dose was reduced from inpatient dosing without clear rationale. Readmission note states patient was taking medications as prescribed, suggesting the discharge regimen was suboptimal rather than non-adherence.
+       - Contrary Evidence: The patient may have had dietary indiscretion or other factors contributing to volume overload that would have occurred regardless of diuretic dosing.
+       - Confidence: 80
+   - Example 2: Lack of early post-discharge follow-up
+       - Supporting Evidence: Patient discharged with new heart failure diagnosis but first cardiology appointment was scheduled 4 weeks out. Patient readmitted at day 12 with decompensated heart failure. Earlier follow-up could have allowed medication titration and identification of worsening symptoms before acute decompensation requiring hospitalization.
+       - Contrary Evidence: Outpatient appointment availability may have been limited, and patient may not have been able to attend an earlier appointment.
+       - Confidence: 90
+   - Example 3: Treatment did not fully treat underlying patient condition
+       - Supporting Evidence: Patient discharged before completing full antibiotic course, with plan to transition to oral antibiotics at home. Readmitted 5 days later with another infection at same site.
+       - Contrary Evidence: The discharge note from the initial admission suggested the infection appeared to be fully addressed, and this second infection may have been caused by a different issue.
+       - Confidence: 80
+
+Examples of factors that ZSFG clinicians have previously noted are HIGHLY ACTIONABLE for readmission prevention and should be assigned high confidence >= 90%:
+- Inadequate patient education
+   => Improve discharge teaching, ensure patient/family understanding of warning signs and when to seek care
+- Lack of timely post-discharge follow-up
+   => Schedule high-risk patients for follow-up within 7 days, such as with a phone call within 48-72 hours
+- Poor medication reconciliation at discharge
+   => Pharmacy involvement in discharge medication reconciliation, clear instructions for changed medications
+- Failure to address social determinants
+   => Early social work involvement, connect patients with community resources before discharge
+- Inadequate coordination with post-acute care facilities
+   => Clear communication with SNF/rehab, ensure they have capacity to manage patient's needs
+- Lack of home health or transitional care services for high-risk patients
+   => Arrange visiting nurse, home health, or transitional care programs for patients at high readmission risk
+- Suboptimal management during index admission leading to incomplete treatment
+   => Ensure underlying condition is adequately treated before discharge
+- Failure to recognize and address patient's health literacy or language barriers
+   => Use teach-back method, provide instructions in patient's preferred language, involve interpreters
+- Missed opportunity for goals of care discussion
+   => For patients with advanced illness, ensure goals of care are addressed and documented
+
+Examples of NON-actionable observations (do NOT list these as contributing factors):
+- Patient's underlying disease severity or progression (baseline illness cannot be changed)
+- Patient chose to leave against medical advice (patient autonomy)
+- Insurance limitations on covered services (external constraint)
+- Unavoidable disease complications (e.g., expected progression of terminal illness)
+- Patient non-adherence despite adequate education and resources (if truly documented as such)
+- External factors like pandemic-related healthcare access limitations
+
+Output the complete two-step analysis in the structured JSON format given below. Example output:
+{{
+  "gantt_chart": {{
+    "index_admission_summary": "Brief summary of the reason for the index admission and key events. Summarize only, no interpretation.",
+    "readmission_summary": "Brief summary of the reason for readmission and its relationship to the index admission.",
+    "events": [
+      {{
+        "event_id": 1,
+        "label": "Index Admission Discharge Planning",
+        "category": "discharge_planning",
+        "description": "Discharge planning initiated late in hospitalization, day before discharge",
+        "start_time": "2024-01-14 10:00",
+        "end_time": "2024-01-15 12:00",
+        "relevant_quotes": "Case management consulted on day of discharge"
+      }},
+      {{
+        "event_id": 2,
+        "label": "Post-Discharge Period Without Follow-up",
+        "category": "gap_in_care",
+        "description": "Patient discharged without scheduled follow-up appointment, no contact from healthcare team",
+        "start_time": "2024-01-15 12:00",
+        "end_time": "2024-01-25 08:00",
+        "time_uncertainty": "estimated",
+        "relevant_quotes": "No outpatient appointments scheduled at discharge...patient presented to ED 10 days later"
+      }},
+      {{
+        "event_id": 3,
+        "label": "Symptom Progression",
+        "category": "symptom_progression",
+        "description": "Worsening dyspnea over 3 days prior to readmission",
+        "start_time": "2024-01-22 00:00",
+        "end_time": "2024-01-25 08:00",
+        "time_uncertainty": "estimated",
+        "relevant_quotes": "Patient reports increasing shortness of breath over past 3 days"
+      }}
+    ]
+  }},
+  "reasons": [
+      {{
+        "reason": "lack of timely post-discharge follow-up",
+        "category": "care_coordination",
+        "explanation_support": "Based on the Gantt chart timeline, patient was discharged without any follow-up appointment scheduled. Readmission occurred 10 days later with symptoms that had been worsening for 3 days. Earlier follow-up within 7 days could have identified decompensation and allowed intervention before requiring hospitalization.",
+        "explanation_contrary": "Patient may not have attended an earlier appointment even if scheduled, or symptoms may have progressed too rapidly for outpatient management.",
+        "relevant_quotes": "No outpatient appointments scheduled at discharge...patient reports increasing shortness of breath over past 3 days",
+        "process_improvement": "Schedule high-risk patients for follow-up within 7 days of discharge. Implement post-discharge phone call within 48-72 hours to assess symptoms and medication adherence.",
+        "confidence": 90
+      }},
+      {{
+        "reason": "inadequate discharge education on warning signs",
+        "category": "patient_education",
+        "explanation_support": "Discharge summary does not document patient education on warning signs or when to seek care. Patient waited 3 days with worsening symptoms before presenting to ED, suggesting lack of understanding of when to seek care earlier.",
+        "explanation_contrary": "Patient may have been educated but chose to wait, or documentation of education may have been incomplete.",
+        "relevant_quotes": "Patient reports increasing shortness of breath over past 3 days...no documented discharge teaching",
+        "process_improvement": "Implement standardized discharge education with teach-back method. Provide written materials on warning signs specific to patient's condition and clear instructions on when to call clinic vs. go to ED.",
+        "confidence": 70
+      }}
+  ]
+}}
+
+Output requirements:
+* Be concise in describing the factors using standard medical and healthcare terminology.
+* If multiple contributing factors are mentioned, list them separately in the `reasons` field of the JSON. If none are found, the list of `reasons` should be empty.
+* The `relevant_quotes` field must contain EXACT quotes from the clinical notes - word-for-word, with no paraphrasing or summarization. Keep it under 200 characters and select the most relevant portion. If supporting evidence spans multiple notes or sections, include text from different parts separated by "..." (e.g., "discharged on reduced diuretics...readmitted with volume overload"). The validation interface will intelligently highlight each section separately to show all supporting evidence.
+* Be confident! Use the full range of the confidence scale from 50-100.

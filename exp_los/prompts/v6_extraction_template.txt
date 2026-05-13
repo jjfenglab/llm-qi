@@ -1,0 +1,115 @@
+You are a clinical quality improvement researcher analyzing hospital length of stay using a two-step value stream mapping approach. This follows Lean Healthcare methodology to first map the patient journey, then identify contributing operational factors that, if modified, would likely shorten hospital stay.
+
+The patient encounter timeline is fully captured below, which includes ALL clinical events and ALL notes written for this patient encounter:
+{note_text}
+
+=== STEP 1: VALUE STREAM MAPPING - PATIENT JOURNEY GANTT CHART ===
+
+First, create a Gantt chart that maps the key phases of the patient's hospital stay. Focus on essential care phases, treatment periods, and potential bottlenecks/delays that may have contributed to extended length of stay (LOS).  Differentiate between medical events that were unavoidable due to illness severity and delays structural delays within the process of care coordination, patient flow and discharge.
+
+Guidelines for creating the Gantt chart:
+1. **Map the patient journey, emphasizing events that extended LOS**: Capture essential care phases, major treatments, and delays that extended the hospital stay
+2. **Include entire hospital timeline**: Cover admission through discharge, noting when the patient was medically ready for discharge vs. actual discharge
+3. **Identify bottlenecks**: Note waiting periods, care coordination delays, resource availability issues, etc (if any)
+4. **Assign event timings**: Assign event timing. If exact timestamps aren't available, provide reasonable estimates and mark them as approximate. If there are important events that extend beyond discharge, set the end timestamp to the time of discharge.
+
+Event categories to consider, though you can introduce others:
+- **admission**: Initial care phases (ED, admission process)
+- **treatment**: Active medical treatment periods (IV medications, monitoring phases)
+- **procedure**: Specific interventions, surgeries, or procedures
+- **waiting**: Delays, waiting for results, scheduling gaps, resource availability
+- **coordination**: Care transitions, discharge planning, specialist consultations
+- **discharge**: Final discharge processes, waiting for equipment/placement
+
+=== STEP 2: LENGTH OF STAY ANALYSIS ===
+
+Go through the Gantt chart you created to identify contributing operational factors that, if modified, would likely shorten LOS.
+
+Instructions:
+1. Going through the Gantt chart, identify opportunities where the patient's LOS could have been shortened. Only list contributors that are actionable, such as resource availability, guideline-directed medical therapy, care coordination issues; avoid listing a patient's illness severity as a factor. Prioritize listing factors that very likely increased LOS by 12+ hours, then those that likely increased LOS, and finally those that possibly increased LOS. List at most 5 factors.
+2. Explanation Support: Provide detailed step-by-step reasoning for why you extracted this as a contributing factor that lengthened LOS, referencing both the Gantt chart timeline and clinical notes when applicable.
+3. Explanation Contrary: Provide explanations for why this factor may not have lengthened LOS..
+4. Relevant Quotes: For each identified contributing factor, provide EXACT quotes (word-for-word) from the note. Quotes should support every step in your explanation.
+5. Process Improvement: For each factor, describe what specific process change could have shortened LOS, focusing on timing and workflow changes within the hospital's control. Then describe step-by-step how an ideal implementation of the proposed process change would affect LOS.
+6. Confidence: Assign a confidence on a likert scale for the following statement: "If we assume proposed process changes are implemented for ALL listed reasons EXCEPT for this one, then this reason prolongs the LOS by 6+ hours."
+   - 3=very likely to be true (>90%), i.e., heavily implied or explicitly stated
+   - 2=likely true (70-90%), i.e., implied in clinical notes
+   - 1=possibly true (50-70%), i.e., probable given clinical notes
+
+Examples of NON-actionable observations (do NOT list these as contributing factors):
+- No ICU/step-down beds available (external capacity constraint)
+- SNF or rehab facilities at capacity (external capacity constraint)
+- Patient's family unavailable (external constraint)
+- Insurance denied authorization (external constraint)
+- Medical-legal requirements (e.g., required observation periods, mandatory monitoring durations, court-ordered holds)
+- Regulatory or compliance-mandated waiting periods
+- Note: Expected time for imaging procedures and consult completion from order placement to completion is approximately 24 hours.  Imaging completion beyond this timeframe should be considered intervenable to reduce LOS.
+
+Examples of ACTIONABLE process improvements (list these instead):
+- Better parallelization of tasks, e.g., discharge planning initiated late (after patient medically stable rather than proactively)
+- ICU/step-down bed request placed late in clinical trajectory
+- Social work consulted only after barriers emerged rather than at admission
+- Insurance pre-authorization not initiated early in admission
+- Care conference scheduled late, delaying family decision-making
+- Anticipated equipment needs not ordered until day of discharge
+- Delayed specialist consultations or procedures
+- Suboptimal medication titration practices prolonging treatment
+- Suboptimal care or processes in the ED that led to prolonged ED stay
+- Pharmacy delays in preparing discharge medications
+- Poor care coordination or communication between teams
+- Delayed test results or scheduling issues
+- Transport delays for diagnostic procedures
+- Lack of weekend hospital services
+
+Output the complete two-step analysis in the structured JSON format given below. Example output:
+{{
+  "gantt_chart": {{
+    "index_admission_summary": "Brief summary of the stated reason for patient's admission. Summarize only, no interpretation.",
+    "events": [
+      {{
+        "event_id": 1,
+        "label": "IV Antibiotic Treatment",
+        "category": "treatment",
+        "description": "Intravenous antibiotic course for infection",
+        "start_time": "2024-01-10 08:00",
+        "end_time": "2024-01-15 12:00",
+        "relevant_quotes": "Started on IV vancomycin for surgical site infection"
+      }},
+      {{
+        "event_id": 2,
+        "label": "Waiting for Outpatient Imaging",
+        "category": "waiting",
+        "description": "Delay for outpatient MRI availability despite medical readiness for discharge",
+        "start_time": "2024-01-15 10:00",
+        "end_time": "2024-01-18 14:00",
+        "time_uncertainty": "estimated",
+        "relevant_quotes": "Patient ready for discharge...waiting 3 days for outpatient MRI availability"
+      }}
+    ]
+  }},
+  "reasons": [
+      {{
+        "reason": "late initiation of outpatient imaging scheduling",
+        "category": "operational",
+        "explanation_support": "Based on the Gantt chart timeline, patient was medically ready for discharge but had to wait 3 days for outpatient imaging. The MRI was not scheduled until after medical readiness was established.",
+        "explanation_contrary": "A possible contrary reason is...", # Or you can literally write "none" if there is no doubts or evidence to the contrary
+        "relevant_quotes": "Patient ready for discharge but pending MRI... MRI completed"
+        "process_improvement": "Outpatient MRI could have been scheduled 2-3 days earlier when discharge trajectory became clear, reducing wait time.",
+        "confidence": 3,
+      }},
+      {{
+        "reason": "late initiation of discharge planning",
+        "category": "social",
+        "explanation_support": "Social work involvement began only after patient was medically ready, rather than proactively during admission when housing instability was identified.",
+        "explanation_contrary": "Possible reasons why this did not increase LOS is...",
+        "relevant_quotes": "Social work stated unable to identify safe discharge location...wait until shelter availability"
+        "process_improvement": "Social work consult and shelter/placement search could have been initiated on admission day when housing instability was documented, allowing parallel processing.",
+        "confidence": 2,
+      }}
+  ]
+}}
+
+Output requirements:
+* Be concise in describing the factors using standard medical and healthcare terminology.
+* If multiple contributing factors are mentioned, list them separately in the `reasons` field of the JSON. If none are found, the list of `reasons` should be empty.
+* The `relevant_quotes` field must contain EXACT quotes from the clinical note - word-for-word, with no paraphrasing or summarization. Keep it under 200 characters and select the most relevant portion. If supporting evidence spans multiple sections of note(s), include text from different parts separated by "..." (e.g., "patient had respiratory failure...later developed septic shock"). The validation interface will intelligently highlight each section separately to show all supporting evidence.
