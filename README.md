@@ -23,6 +23,10 @@ The paper's Supplementary Information contains the full prompt text, per-iterati
 | Methods → Conformal filtering | `src/conformal_inference.py`, `src/filter_reasons_conformal.py`, `src/eval_conformal_inference.py` |
 | Methods → BERTopic clustering and theme tagging | `src/cluster_reasons.py`, `src/tag_themes.py`, `src/plot_themes.py` |
 | Methods → Deduplication of bloated notes | `bloatectomy/` (vendored, GPL-3.0-or-later) |
+| Results → Human-AI agreement and calibration; Supplementary → "Additional Agreement Analyses" | `src/agreement_metrics.py`, `src/generate_agreement_supplement.py`, `src/generate_calibration_figure.py` |
+| Supplementary → "Generic-Prompt (Round 1) Theme Coverage" | `src/analyze_v1_ablation.py` |
+| Supplementary → "Heart-Failure Subgroup Theme Comparison" | `src/generate_hf_subgroup_table.py` |
+| Supplementary → "Cohort Characteristics and Study Period" | `src/generate_cohort_table.py` |
 
 ## Pipeline overview
 
@@ -142,3 +146,16 @@ After `scons exp_<case>` finishes clustering, `<outdir>/cluster_members.json` co
 > Read `<outdir>/cluster_members.json` produced by `src/cluster_reasons.py`. Create a new JSON `cluster_members_gemini_clean.json` with the same structure but human-interpretable topic names. If needed, divide any BERTopic theme further into smaller categories. Each topic should be cohesive and motivate a single hospital QI initiative. Fields per topic: `topic_name` (full name), `topic_description` (detailed), `qi_initiative` (example QI initiatives), `members` (list of cluster members).
 
 Save the result as `cluster_members_gemini_clean.json` in the same `<outdir>`. `tag_themes` and `plot_themes` consume this file.
+
+## Statistical analyses reported in the paper
+
+The scripts below reproduce the statistical analyses reported in the paper and its Supplementary Information. They read the pipeline's own outputs — the annotation databases written by the validation UI and the tagged-factor CSVs written by `tag_themes` — none of which ship with this repository. Run without data, each script exits with a message describing the inputs it expects, so the same analyses can be rerun on your own institution's data.
+
+- `src/agreement_metrics.py` — agreement, association, and calibration metrics between the binned AI confidence scores and the expert Likert ratings on the held-out evaluation sets: score distributions and confusion matrices, exact and within-one-point agreement, MAE, weighted kappa, Spearman/Kendall rank correlations, ordinal calibration error and expected calibration errors, Krippendorff's ordinal alpha and ICC(A,1) among the expert raters, and a matched inter-rater versus LLM-rater comparison with a joint item-level bootstrap (encounter-clustered intervals as a sensitivity analysis). Writes `exp_*/_output/agreement_metrics.json`.
+- `src/generate_agreement_supplement.py` — renders the supplementary agreement tables (full-set metrics, matched comparison, score distributions, confusion matrices, per-bin calibration) from those JSON outputs.
+- `src/generate_calibration_figure.py` — the calibration panels reported in the paper: mean expert rating per confidence bin with t-based 95% CIs and per-bin sample sizes.
+- `src/analyze_v1_ablation.py` — generic-prompt (round 1) theme-coverage ablation: re-tags the round-1 extraction outputs with the published theme tagger and reports coverage of the final themes and prior-Lean categories.
+- `src/generate_hf_subgroup_table.py` — heart-failure subgroup theme comparison for the readmission case study.
+- `src/generate_cohort_table.py` — cohort-characteristics and study-period tables for the refinement, evaluation, and scale-up stages of both case studies, assembled from the source EHR database.
+
+Generated tables and figures land under `_output/` (gitignored).

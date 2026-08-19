@@ -46,6 +46,7 @@ jsonpointer==3.0.0
 jupyter_client==8.8.0
 jupyter_core==5.9.1
 kiwisolver==1.4.9
+krippendorff==0.8.2
 lab_llm @ git+https://github.com/jjfenglab/llm-api.git
 langchain==0.3.21
 langchain-aws==0.2.16

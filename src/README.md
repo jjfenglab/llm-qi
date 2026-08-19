@@ -26,6 +26,15 @@ The top-level [README](../README.md) describes the full pipeline, how to install
 - `tag_themes.py` — tag each reason with the cleaned cluster name (LLM).
 - `plot_themes.py` — theme distribution figures used in the paper.
 
+## Paper analyses
+See "Statistical analyses reported in the paper" in the top-level README for what each computes and the inputs it expects.
+- `agreement_metrics.py` — agreement/reliability/calibration metrics on the held-out evaluation sets.
+- `generate_agreement_supplement.py` — supplementary agreement tables from the metrics JSON.
+- `generate_calibration_figure.py` — calibration panels (mean expert rating per confidence bin).
+- `analyze_v1_ablation.py` — generic-prompt (round 1) theme-coverage ablation.
+- `generate_hf_subgroup_table.py` — heart-failure subgroup theme comparison (readmission).
+- `generate_cohort_table.py` — cohort-characteristics and study-period tables.
+
 ## Utilities
 - `utils/db_utils.py` — DuckDB helpers.
 - `plot_themes.py`, `plot_themes_*` — figure helpers.
