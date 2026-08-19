@@ -8,8 +8,7 @@ held-out encounters does not by itself demonstrate discovery. The round-1
 surviving v1 extraction outputs with the *published* theme tagger shows how
 much of the final theme taxonomy a generic prompt already reaches. The LOS
 comparison is reported in the paper's Supplementary Information
-("Generic-Prompt (Round 1) Theme Coverage"); the readmission condition is
-included for completeness.
+("Generic-Prompt (Round 1) Theme Coverage").
 
 Two phases:
 
@@ -30,7 +29,6 @@ this repository):
       cluster_members_gemini_clean.json                     published themes
       tagged_reasons.csv                                    published tagging
       cluster_to_lean_mapping.json    prior-Lean category -> theme slugs
-  (readmission: exp_readmission/_output/prompt_v1 and prompt_v8/default)
 
 Tagged v1 outputs land under exp_*/_output/, which is gitignored: the factor
 text derives from clinical notes and must not be committed.
@@ -67,17 +65,6 @@ CONDITIONS = {
         # v1 scored confidence on a 0-3 Likert scale; the published run scored on
         # 0-100 in a separate pass, so no comparable confidence filter exists.
         "v1_high_conf": 3.0,
-    },
-    "readmission": {
-        "v1_extracted": BASE / "exp_readmission/_output/prompt_v1/extracted_reasons.csv",
-        "v1_shim": None,  # v1 readmission schema already carries explanation_support
-        "v1_tagged": BASE / "exp_readmission/_output/prompt_v1/tagged_v1.csv",
-        "v1_log": BASE / "exp_readmission/_output/prompt_v1/log_theme_tagging_v1.txt",
-        "themes_json": BASE / "exp_readmission/_output/prompt_v8/default/cluster_members_gemini_clean.json",
-        "template": BASE / "exp_readmission/prompts/theme_tagging_template.txt",
-        "published_tagged": BASE / "exp_readmission/_output/prompt_v8/default/tagged_reasons.csv",
-        "lean_map": BASE / "exp_readmission/_output/prompt_v8/default/cluster_to_lean_mapping.json",
-        "v1_high_conf": None,
     },
 }
 
@@ -233,16 +220,14 @@ def analyze(name, cfg, top_k=15):
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("phase", choices=["tag", "analyze"])
-    ap.add_argument("--condition", choices=list(CONDITIONS) + ["all"], default="all")
     ap.add_argument("--top-k", type=int, default=15)
     args = ap.parse_args()
 
-    names = list(CONDITIONS) if args.condition == "all" else [args.condition]
-    for n in names:
-        if args.phase == "tag":
-            run_tagging(n, CONDITIONS[n])
-        else:
-            analyze(n, CONDITIONS[n], top_k=args.top_k)
+    cfg = CONDITIONS["los"]
+    if args.phase == "tag":
+        run_tagging("los", cfg)
+    else:
+        analyze("los", cfg, top_k=args.top_k)
 
 
 if __name__ == "__main__":
